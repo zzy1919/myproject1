@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/process_comm.h
+iostream
+-
+string
+-
+string.h
+-
+unistd.h
+../include/unistd.h
+thread
+-
+chrono
+-
+time.h
+-
+fstream
+-
+sys/resource.h
+-
+sys/statvfs.h
+-
+sys/vfs.h
+-
+sys/ipc.h
+-
+sys/shm.h
+-
+sys/types.h
+-
+semaphore.h
+-
+fcntl.h
+-
+
+/home/zzy/Desktop/zzy_stduy/my_project_test1/src/main.cpp
+process_comm.h
+/home/zzy/Desktop/zzy_stduy/my_project_test1/src/process_comm.h
+
