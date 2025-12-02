@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>阶段二：核心服务与状态管理</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -23,7 +23,7 @@
             <h2>1. 教学目标</h2>
             <ul>
                 <li><strong>理解服务分层</strong>：掌握将不同职责的逻辑（如定位、API请求、状态管理、工具函数）拆分到独立 <code>utils</code> 文件中的重要性。</li>
-                <li><strong>掌握异步流程</strong>：能够熟练运用 <code>Promise</code> 和 <code>async/await</code> 封装 <code>uni-app</code> 的原生异步 API（如 <code>uni.request</code>, <code>uni.getLocation</code>），并处理复杂的异步依赖关系。</li>
+                <li><strong>掌握异步流程</strong>：能够熟练运用 <code>Promise</code> 和 <code>async/await</code> 封装 <code>uni-app</code> 的原生异步 API。</li>
                 <li><strong>学习简易状态管理</strong>：理解如何使用 Vue 3 的 <code>reactive</code> API 结合 <code>uni.setStorageSync</code> 构建一个轻量、持久化的全局状态管理器。</li>
                 <li><strong>建立真实数据流</strong>：将阶段一的静态首页与真实的服务层连接，建立起清晰的数据流动闭环：<strong>页面加载 → 定位 → 获取数据 → 更新状态 → 渲染UI</strong>。</li>
                 <li><strong>数据驱动开发</strong>：实现首页所有数据均由真实 API 动态驱动，替换掉所有硬编码的静态数据。</li>
@@ -63,137 +63,275 @@
                 C --更新--> I;
             </div>
 
-            <h2>3. 核心步骤详解</h2>
+            <h2>3. 服务层构建详解</h2>
             <div class="flow-illustration">
-                <img src="assets/component-page.svg" alt="UI Component" class="icon" style="width: 100px; height: 100px;">
-                <img src="assets/arrow-right.svg" alt="Flow Arrow" class="arrow">
-                <img src="assets/api-icon.svg" alt="API Service" class="icon">
-                <img src="assets/arrow-right.svg" alt="Flow Arrow" class="arrow">
-                <img src="assets/storage-icon.svg" alt="Store/Storage" class="icon">
-                <img src="assets/arrow-right.svg" alt="Flow Arrow" class="arrow">
-                <img src="assets/code-icon.svg" alt="Logic/Utils" class="icon">
+                <span class="emoji-icon" style="font-size: 60px;">📄</span>
+                <span class="emoji-icon" style="font-size: 30px;">➡️</span>
+                <span class="emoji-icon" style="font-size: 40px;">🔗</span>
+                <span class="emoji-icon" style="font-size: 30px;">➡️</span>
+                <span class="emoji-icon" style="font-size: 40px;">🗄️</span>
+                <span class="emoji-icon" style="font-size: 30px;">➡️</span>
+                <span class="emoji-icon" style="font-size: 40px;">💻</span>
             </div>
-            <p>在阶段一，我们的页面是“死”的。现在，我们要通过建立服务层，为它注入“灵魂”——真实的数据。</p>
+            <p>在阶段一，我们的页面是“死”的。现在，我们要通过建立服务层，为它注入“灵魂”——真实的数据。这个服务层由一系列各司其职的JS文件构成。</p>
 
-            <h3><img src="assets/api-icon.svg" alt="API Icon" class="list-icon"> 步骤一：封装定位服务 (<code>utils/location.js</code>)</h3>
-            <ul>
-                <li><strong>职责</strong>: 这是所有数据获取的起点。它负责确定用户当前的城市，并获取后续API调用所需的 <code>locationId</code> 和经纬度。</li>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>通过 <code>uni.request</code> 调用高德地图的IP定位API，获取用户当前城市名和经纬度。</li>
-                        <li>如果失败，则默认返回“北京”的信息。</li>
-                        <li>拿到城市名后，调用和风天气的城市查询API，获取该城市对应的 <code>locationId</code>。</li>
-                        <li>将 <code>city</code>, <code>longitude</code>, <code>latitude</code>, <code>locationId</code> 组装成一个对象返回。</li>
-                    </ol>
-                </li>
-                <li><strong>知识点</strong>: 多个异步请求的串联处理，<code>Promise</code> 的构造与使用，错误处理与默认值。</li>
-            </ul>
+            <h3><span class="emoji-icon">🔗</span> 步骤一：封装定位服务 (<code>utils/location.js</code>)</h3>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：我们需要一个可靠的方式来获取应用的起始城市信息。这个过程比单一的API调用要复杂，它包含多个步骤：首先通过IP地址大致定位城市，然后用获取到的城市名去查询更精确的 <code>locationId</code>（天气API需要这个ID）。</p>
+            <p><strong>设计决策</strong>：将这个复杂、涉及多个异步调用的流程封装到一个名为 `getCurrentCity` 的函数中。这样，页面层只需调用这一个函数，就能得到所有需要的位置信息，大大简化了页面的逻辑。</p>
+
+            <h5>编码流程</h5>
+            <ol>
+                <li>创建 <code> /utils/location.js</code> 文件。</li>
+                <li>在文件中，定义 `getCurrentCity` 函数，并标记为 `async`。</li>
+                <li>在函数内部，使用 `new Promise` 包装第一个 `uni.request`，用于通过高德IP定位API获取城市名和经纬度。提供 `fail` 回调，以便在失败时返回一个默认城市（如北京）。</li>
+                <li>使用 `await` 等待上一步的结果。</li>
+                <li>拿到城市名后，再次 `await` 调用 `fetchCityId` 函数（同样是Promise封装的 `uni.request`），去和风天气API查询该城市名的 `locationId`。</li>
+                <li>将所有获取到的信息（城市名、经纬度、`locationId`）组合成一个对象并 `return`。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 utils/location.js 源代码</summary>
-                <div><pre><code class="language-javascript">// 和风天气API Key
-const QWEATHER_KEY = '你的Key';
-const AMAP_URL = 'https://restapi.amap.com/v3/ip';
-const AMAP_KEY = '你的Key';
+                <div><pre><code class="language-javascript">/**
+ * 定位工具函数
+ * 1、获取天气情况的api中，需要用到loaction（城市id），需要先获取城市id，
+ * 2、获取城市的id，可以通过城市名称来获取（调用和风天气api）
+ * 3、城市名称，可以根据ip地址获取，通过ip地址获取城市名称和经纬度信息。
+ * 
+ * 步骤一、根据ip地址获取城市名称和经纬度信息（用高德地图api）
+ * 步骤二、根据城市名称获取城市id（用和风天气api）
+ * 
+ * 错误处理：失败的话，都默认返回北京id、城市名、经纬度信息
+ */
+
+// 和风天气API Key
+import UrlConfig from '../datas/url.json';
+const QWEATHER_KEY = UrlConfig.getCityIdUrl.key;
+
+const AMAP_URL = UrlConfig.getCurrentCityUrl.AMAP_URL;
+const AMAP_KEY = UrlConfig.getCurrentCityUrl.AMAP_KEY;
+
+
+// const BAIDU_URL = UrlConfig.getCurrentCityUrl.BAIDU_URL;
+// const BAIDU_KEY = UrlConfig.getCurrentCityUrl.BAIDU_KEY;
 
 /**
  * 获取当前位置信息
- * @returns {Promise} - 城市信息对象
+ * @returns {Promise} - 城市信息对象，包含city、longitude、latitude、locationId
  */
 export const getCurrentCity = async () => {
-  // 1. 获取IP对应的城市名和经纬度
+  // 第一步：获取IP对应的城市
   const ipData = await new Promise((resolve) => {
     uni.request({
-      url: AMAP_URL,
-      data: { key: AMAP_KEY },
+      // // url: 'http://ip-api.com/json/?lang=zh-CN' 
+      url: AMAP_URL, //高德 /百度
+      data: {
+        key: AMAP_KEY //高德 
+        // ak: "BAIDU_KEY"  , coor:"bd09ll" //百度
+      },
       method: 'GET',
       success: (res) => {
         const [lng, lat] = res.data.rectangle.split(';')[0].split(',');
         resolve({ 
           city: res.data.city, 
-          longitude: parseFloat(lng).toFixed(2),
-          latitude: parseFloat(lat).toFixed(2)
+          longitude: parseFloat(lng).toFixed(2), //经度
+          latitude: parseFloat(lat).toFixed(2)   //纬度
         });
+        console.log("success", res.data);
       },
       fail: (err) => {
-        resolve({ city: '北京', longitude: 116.41, latitude: 39.92 });
+        resolve({ 
+          city: '北京',
+          longitude: 116.41,//经度
+          latitude: 39.92   //纬度
+        });
+        console.log("fail");
       }
     });
   });
 
   const cityName = ipData.city || '北京';
   
-  // 2. 根据城市名获取和风天气locationId
+  // 第二步：获取城市对应的locationId
   const cityIdData = await fetchCityId(cityName);
   const locationId = cityIdData?.location?.[0]?.id || '101010100';
   
-  // 3. 组装并返回最终的城市信息对象
-  return {
+  // 创建城市信息对象
+  const cityInfo = {
     city: cityName,
     longitude: ipData.longitude,
     latitude: ipData.latitude,
     locationId: locationId
   };
+  
+  // 返回城市信息对象
+  return cityInfo;
 };
 
 /**
  * 根据城市名获取和风天气locationId
  * @param {string} cityName - 城市名称
- * @returns {Promise}
+ * @returns {Promise} - 包含locationId的响应数据
  */
 export const fetchCityId = (cityName) => {
-  // ... (代码同上)
+  return new Promise((resolve) => {
+    uni.request({
+      url: UrlConfig.getCityIdUrl.url,
+      method: 'GET',
+      data: {
+        location: cityName,
+        key: QWEATHER_KEY
+      },
+      success: (res) => {
+        resolve(res.data);
+      },
+      fail: () => {
+        // 失败时返回默认数据
+        resolve({ location: [{ id: '101010100' }] });
+      }
+    });
+  });
+};
+
+/**
+ * 根据城市名更新城市信息
+ * @param {string} cityName - 城市名称
+ * @returns {Promise} - 城市信息对象，包含city、longitude、latitude、locationId
+ */
+export const updateCityInfoByCity = async (cityName) => {
+  // 获取城市对应的locationId
+  const cityIdData = await fetchCityId(cityName);
+  const locationId = cityIdData?.location?.[0]?.id || '101010100';
+  
+  // 获取经纬度（如果cityIdData中包含）
+  const longitude = cityIdData?.location?.[0]?.lon || 116.41;
+  const latitude = cityIdData?.location?.[0]?.lat || 39.92;
+  
+  // 创建城市信息对象
+  const cityInfo = {
+    city: cityName,
+    longitude: longitude,
+    latitude: latitude,
+    locationId: locationId
+  };
+  
+  // 返回城市信息对象
+  return cityInfo;
 };
 </code></pre></div>
             </details>
             <hr>
 
-            <h3><img src="assets/storage-icon.svg" alt="Storage Icon" class="list-icon"> 步骤二：创建简易状态管理器 (<code>utils/store.js</code>)</h3>
-            <ul>
-                <li><strong>职责</strong>: 作为应用的“全局公告板”，存储跨页面共享的数据（如当前城市信息），并将其持久化到本地存储，确保应用下次打开时能恢复状态。</li>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>使用 Vue 3 的 <code>reactive</code> 创建一个响应式的 <code>store</code> 对象。</li>
-                        <li>提供 <code>getCityInfo</code> 和 <code>setCityInfo</code> 等方法来读取和修改状态。</li>
-                        <li>在 <code>setCityInfo</code> 中，使用 <code>uni.setStorageSync</code> 将数据写入本地缓存。</li>
-                        <li>在文件首次加载时，执行 <code>initStore</code> 函数，尝试从 <code>uni.getStorageSync</code> 读取数据来初始化 <code>store</code> 对象。</li>
-                    </ol>
-                </li>
-                <li><strong>知识点</strong>: <code>reactive</code> 的使用，<code>uni.setStorageSync</code>/<code>getStorageSync</code> 的同步读写。</li>
-            </ul>
+            <h3><span class="emoji-icon">🗄️</span> 步骤二：创建简易状态管理器 (<code>utils/store.js</code>)</h3>
+             <h5>设计流程</h5>
+             <p><strong>目标</strong>：我们需要一个地方来存放全局共享的数据，例如当前城市信息。这个数据需要在多个页面（首页、城市页）之间同步，并且在小程序关闭后能够被记住。</p>
+             <p><strong>设计决策</strong>：不引入大型状态管理库（如Pinia），而是利用 Vue 3 自带的 `reactive` API 创建一个轻量级的 `store` 对象。通过导出 `set` 和 `get` 方法来规范化对状态的读写。在每次 `set` 操作时，都同步使用 `uni.setStorageSync` 将数据写入本地缓存，实现持久化。在应用首次加载时，通过 `initStore` 函数从缓存中恢复数据。</p>
+            
+            <h5>编码流程</h5>
+            <ol>
+                <li>创建 <code> /utils/store.js</code> 文件。</li>
+                <li>从 `vue` 导入 `reactive`。</li>
+                <li>创建一个名为 `store` 的 `reactive` 对象，并定义初始状态，如 `cityInfo`。</li>
+                <li>编写 `setCityInfo(cityInfo)` 函数。函数内部首先更新 `store.cityInfo`，然后立即调用 `uni.setStorageSync('CityInfo', cityInfo)`。</li>
+                <li>编写 `getCityInfo()` 函数，直接返回 `store.cityInfo`。</li>
+                <li>编写 `initStore()` 函数，在文件首次被导入时执行。它尝试用 `uni.getStorageSync('CityInfo')` 读取数据，如果存在，则用它初始化 `store.cityInfo`。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 utils/store.js 源代码</summary>
                 <div><pre><code class="language-javascript">import { reactive } from 'vue';
 
-// 创建全局响应式状态
+// 创建全局状态
 const store = reactive({
-  cityInfo: { /* ...默认值... */ },
-  myCities: [],
-  // ...
+  // 当前城市信息
+  cityInfo: {
+    city: '北京',
+    longitude: 116.41,
+    latitude: 39.92,
+    locationId: '101010100'
+  },
+  // 我的城市列表
+  myCities: ['北京', '上海', '广州'],
+  // 热门城市列表
+  hotCities: ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安']
 });
 
 /**
  * 设置当前城市信息
+ * @param {Object} cityInfo - 城市信息对象，包含city、longitude、latitude、locationId
  */
 export const setCityInfo = (cityInfo) => {
   store.cityInfo = cityInfo;
-  // 使用 'CityInfo' 作为键，将对象整体存入
+  // 保存到本地存储，使用单个键"CityInfo"
   uni.setStorageSync('CityInfo', cityInfo);
 };
 
 /**
  * 获取当前城市信息
+ * @returns {Object} - 当前城市信息对象
  */
 export const getCityInfo = () => {
   return store.cityInfo;
 };
 
+/**
+ * 添加城市到我的城市列表
+ * @param {string} city - 城市名称
+ */
+export const addMyCity = (city) => {
+  if (!store.myCities.includes(city)) {
+    store.myCities.push(city);
+    // 保存到本地存储
+    uni.setStorageSync('myCities', store.myCities);
+  }
+};
+
+/**
+ * 从我的城市列表中删除城市
+ * @param {string|number} city - 城市名称或索引
+ */
+export const removeMyCity = (city) => {
+  let index;
+  if (typeof city === 'string') {
+    index = store.myCities.indexOf(city);
+  } else {
+    index = city;
+  }
+  
+  if (index !== -1) {
+    store.myCities.splice(index, 1);
+    // 保存到本地存储
+    uni.setStorageSync('myCities', store.myCities);
+  }
+};
+
+/**
+ * 获取我的城市列表
+ * @returns {Array} - 我的城市列表
+ */
+export const getMyCities = () => {
+  return store.myCities;
+};
+
+/**
+ * 获取热门城市列表
+ * @returns {Array} - 热门城市列表
+ */
+export const getHotCities = () => {
+  return store.hotCities;
+};
+
 // 初始化时从本地存储加载数据
 const initStore = () => {
+  // 加载城市信息
   const cityInfo = uni.getStorageSync('CityInfo');
   if (cityInfo) {
     store.cityInfo = cityInfo;
   }
-  // ...
+  
+  // 加载我的城市列表
+  const cities = uni.getStorageSync('myCities');
+  if (cities && Array.isArray(cities)) {
+    store.myCities = cities;
+  }
 };
 
 initStore();
@@ -203,46 +341,75 @@ export default store;
             </details>
             <hr>
             
-            <h3><img src="assets/api-icon.svg" alt="API Icon" class="list-icon"> 步骤三：封装统一API服务 (<code>utils/api.js</code>)</h3>
-            <ul>
-              <li><strong>职责</strong>: 项目中所有与天气API相关的请求都应通过此文件发出。它负责参数拼接、数据获取和最重要的数据清洗与格式化。</li>
-              <li><strong>实现逻辑</strong>:
-                  <ol>
-                      <li>从 <code>url.json</code> 和 <code>store</code> 中获取 API 的 URL、Key 和 <code>locationId</code>。</li>
-                      <li>为每个API端点（实时天气、7日预报等）创建一个独立的 <code>async</code> 函数。</li>
-                      <li>函数内部使用 <code>new Promise</code> 包装 <code>uni.request</code>。</li>
-                      <li>请求成功后，<strong>不直接返回原始数据</strong>，而是提取关键信息，转换成UI组件期望的、干净的格式（如 <code>temp: '25'</code>, <code>weather: '晴'</code>）。</li>
-                      <li>定义 <code>WEATHER_TEXT_MAP</code>，将API返回的文字（如“晴”）映射为我们需要的图标名（如“star”），实现逻辑解耦。</li>
-                  </ol>
-              </li>
-              <li><strong>知识点</strong>: 模块化思想，数据转换与适配（Adapter模式），<code>map</code> 函数的使用。</li>
-            </ul>
+            <h3><span class="emoji-icon">🔗</span> 步骤三：封装统一API服务 (<code>utils/api.js</code>)</h3>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：将所有与第三方天气API的直接通信都集中到一个地方。这样做可以避免在多个页面中重复编写 `uni.request` 代码，并方便未来统一处理如更换API供应商、修改API参数、添加通用错误处理等需求。</p>
+            <p><strong>设计决策</strong>：为每个API端点（如获取实时天气、获取7日预报）创建一个独立的、`async` 的导出函数。在函数内部，从 `store`（通过本地缓存）读取需要的 `locationId`，然后执行 `uni.request`。最重要的是，在 `success` 回调中，对API返回的原始数据进行“清洗”和“格式化”，将其转换为UI组件真正需要的、干净整洁的 `Object` 或 `Array` 格式再返回。</p>
+            
+            <h5>编码流程</h5>
+            <ol>
+                <li>创建 <code> /utils/api.js</code> 文件。</li>
+                <li>为每个API（如 `getCurrentWeather`）创建一个 `async` 函数。</li>
+                <li>在函数内部，通过 `uni.getStorageSync('CityInfo')` 获取 `locationId`。</li>
+                <li>使用 `new Promise` 包装 `uni.request`，并在其中配置好URL、Key和 `locationId` 等参数。</li>
+                <li>在 `success` 回调中，从 `res.data` 中提取需要的数据（如 `res.data.now`），然后构建一个新的、结构清晰的对象返回。例如，将 `res.data.now.temp` 映射为 `data.temp`。</li>
+                <li>为所有API函数重复此过程。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 utils/api.js 源代码</summary>
-                <div><pre><code class="language-javascript">import UrlConfig from '../datas/url.json';
+                <div><pre><code class="language-javascript">// 引入API地址配置
+import UrlConfig from '../datas/url.json';
 
-const WEATHER_TEXT_MAP = { /* ...映射关系... */ };
+/**
+ * 天气文本映射表
+ * 将天气文本映射到组件使用的icon名称
+ */
+const WEATHER_TEXT_MAP = {
+  '晴': 'star',
+  '多云': 'cloud-download',
+  '阴': 'cloud-upload',
+  '小雨': 'download',
+  '中雨': 'download',
+  '大雨': 'download',
+  '暴雨': 'download',
+  '阵雨': 'download',
+  '雷阵雨': 'download',
+  '小雪': 'cloud-download',
+  '中雪': 'cloud-download',
+  '大雪': 'cloud-download',
+  '暴雪': 'cloud-download',
+  '雨夹雪': 'cloud-download',
+  '雾': 'info',
+  '霾': 'info',
+  '沙尘暴': 'info'
+};
 
 /**
  * 获取实时天气数据
  * @param {string} city - 城市名称
- * @returns {object} - 清洗后的实时天气数据
+ * @returns {object} - 实时天气数据
  */
 export const getCurrentWeather = async (city) => {
+  // 从CityInfo对象中获取locationId
   const cityInfo = uni.getStorageSync('CityInfo') || {};
-  const locationId = cityInfo.locationId || '默认值';
-  
+  const locationId = cityInfo.locationId || UrlConfig.CurrentWeatherUrl.data.location;
+  console.log("locationId", locationId)
+  // 使用异步请求获取实时天气数据
   const result = await new Promise((resolve) => {
     uni.request({
-      // ...请求参数...
+      url: UrlConfig.CurrentWeatherUrl.url,
+      method: 'GET',
+      data: {
+        key: UrlConfig.CurrentWeatherUrl.data.key,
+        location: locationId
+      },
+      dataType: 'json',
       success: (res) => resolve(res.data),
       fail: () => resolve({ code: '500' })
     });
   });
-
   if (result.code === '200') {
     const nowData = result.now;
-    // 数据清洗与格式化
     return {
       code: '200',
       data: {
@@ -251,104 +418,432 @@ export const getCurrentWeather = async (city) => {
         weather: nowData.text,
         humidity: `${nowData.humidity}%`,
         wind: `${nowData.windDir} ${nowData.windScale}级`,
+        pressure: `${nowData.pressure} hPa`,
+        visibility: `${nowData.vis} km`,
         icon: WEATHER_TEXT_MAP[nowData.text] || 'star'
       }
     };
   } else {
-    // 返回默认/错误数据
-    return { code: '500', data: { /* ... */ } };
+    // 请求失败或数据错误时返回默认数据
+    return {
+      code: '500',
+      data: {
+        city: city,
+        temp: '25',
+        weather: '晴',
+        humidity: '45%',
+        wind: '东北风 3级',
+        visibility: '10 km',
+        icon: 'star'
+      }
+    };
   }
 };
 
-// get24hForecast, get7dForecast 等函数与上面类似...
-</code></pre></div>
-            </details>
+/**
+ * 获取24小时天气预报
+ * @param {string} city - 城市名称
+ * @returns {object} - 24小时天气预报数据
+ */
+export const get24hForecast = async (city) => {
+  // 从CityInfo对象中获取locationId
+  const cityInfo = uni.getStorageSync('CityInfo') || {};
+  const locationId = cityInfo.locationId || UrlConfig.Weather24hUrl.data.location;
+  
+  // 使用异步请求获取24小时天气预报数据
+  const result = await new Promise((resolve) => {
+    uni.request({
+      url: UrlConfig.Weather24hUrl.url,
+      method: 'GET',
+      data: {
+        key: UrlConfig.Weather24hUrl.data.key,
+        location: locationId
+      },
+      dataType: 'json',
+      success: (res) => resolve(res.data),
+      fail: () => resolve({ code: '500' })
+    });
+  });
+  
+  if (result.code === '200') {
+    const hourlyData = result.hourly;
+    const forecast = hourlyData.map(item => {
+      // 从fxTime中提取小时，格式为HH:00
+      const hour = new Date(item.fxTime).getHours().toString().padStart(2, '0');
+      return {
+        time: `${hour}:00`,
+        temp: item.temp,
+        weather: item.text,
+        wind: `${item.windDir} ${item.windScale}级`,
+        icon: WEATHER_TEXT_MAP[item.text] || 'star'
+      };
+    });
+    
+    return {
+      code: '200',
+      data: forecast
+    };
+  } else {
+    // 请求失败或数据错误时返回默认数据
+    return {
+      code: '500',
+      data: []
+    };
+  }
+};
+
+/**
+ * 获取7天天气预报
+ * @param {string} city - 城市名称
+ * @returns {object} - 7天天气预报数据
+ */
+export const get7dForecast = async (city) => {
+  // 从CityInfo对象中获取locationId
+  const cityInfo = uni.getStorageSync('CityInfo') || {};
+  const locationId = cityInfo.locationId || UrlConfig.Weather7dUrl.data.location;
+  // 使用异步请求获取7天天气预报数据
+  const result = await new Promise((resolve) => {
+    uni.request({
+      url: UrlConfig.Weather7dUrl.url,
+      method: 'GET',
+      data: {
+        key: UrlConfig.Weather7dUrl.data.key,
+        location: locationId
+      },
+      dataType: 'json',
+      success: (res) => resolve(res.data),
+      fail: () => resolve({ code: '500' })
+    });
+  });
+  
+  if (result.code === '200') {
+    const dailyData = result.daily;
+    const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    
+    const forecast = dailyData.map(item => {
+      // 从fxDate中提取月/日，格式为MM/DD
+      const date = new Date(item.fxDate);
+      const month = (date.getMonth() + 1).toString();
+      const day = date.getDate().toString();
+      const weekDay = weekDays[date.getDay()];
+      
+      return {
+        date: `${month}/${day}`,
+        day: weekDay,
+        tempMax: item.tempMax,
+        tempMin: item.tempMin,
+        weather: item.textDay,
+        wind: `${item.windDirDay} ${item.windScaleDay}级`,
+        icon: WEATHER_TEXT_MAP[item.textDay] || 'star'
+      };
+    });
+    console.log("get7dForecast forecast:", forecast);
+    return {
+      code: '200',
+      data: forecast
+    };
+  } else {
+    // 请求失败或数据错误时返回默认数据
+    return {
+      code: '500',
+      data: []
+    };
+  }
+};
+
+/**
+ * 获取空气质量数据
+ * @param {string} city - 城市经纬度，格式为"经度longitude,纬度latitude"
+ * @returns {object} - 空气质量数据
+ */
+export const getAirQuality = async (city) => {
+  // 直接导入getCurrentCity
+  const { getCurrentCity } = await import('./location.js');
+  
+  // 从CityInfo对象中获取经纬度
+  const cityInfo = uni.getStorageSync('CityInfo') || {};
+  const longitude = cityInfo.longitude || 116.41;
+  const latitude = cityInfo.latitude || 39.92;
+  
+  // 构建空气质量URL，使用获取到的经纬度
+  const baseUrl = UrlConfig.CurrentAirQualityUrl.url.split('/').slice(0, -2).join('/');
+  const url = `${baseUrl}/${latitude}/${longitude}`;
+  // 使用异步请求获取空气质量数据
+  const result = await new Promise((resolve) => {
+    uni.request({
+      url: url,
+      method: 'GET',
+      data: UrlConfig.CurrentAirQualityUrl.data,
+      dataType: 'json',
+      success: (res) => resolve(res.data),
+      fail: () => resolve({ code: '500' })
+    });
+  });
+  
+  if (result.code === '200' && result.indexes && result.pollutants) {
+    const aqiData = result.indexes[0];
+    const pollutants = result.pollutants;
+    
+    // 从pollutants中提取各项污染物数据
+    const pollutantMap = {};
+    pollutants.forEach(pollutant => {
+      pollutantMap[pollutant.code] = pollutant.concentration.value;
+    });
+    
+    // 根据AQI值计算颜色
+    const getAirQualityColor = (aqi) => {
+      if (aqi <= 50) return '#00E400'; // 优
+      if (aqi <= 100) return '#FFFF00'; // 良
+      if (aqi <= 150) return '#FF7E00'; // 轻度污染
+      if (aqi <= 200) return '#FF0000'; // 中度污染
+      if (aqi <= 300) return '#99004C'; // 重度污染
+      return '#7E0023'; // 严重污染
+    };
+    
+    return {
+      code: '200',
+      data: {
+        aqi: aqiData.aqi,
+        level: aqiData.category,
+        pm25: pollutantMap['pm2p5'] || 0,
+        pm10: pollutantMap['pm10'] || 0,
+        no2: pollutantMap['no2'] || 0,
+        o3: pollutantMap['o3'] || 0,
+        color: getAirQualityColor(aqiData.aqi)
+      }
+    };
+  } else {
+    // 请求失败或数据错误时返回默认数据
+    return {
+      code: '500',
+      data: {
+        aqi: 75,
+        level: '良',
+        pm25: 35,
+        pm10: 60,
+        no2: 25,
+        o3: 80,
+        color: '#FFFF00'
+      }
+    };
+  }
+};
+
+/**
+ * 获取生活指数数据
+ * @param {string} city - 城市名称
+ * @returns {object} - 生活指数数据
+ */
+export const getLifeIndex = async (city) => {
+  // 从CityInfo对象中获取locationId
+  const cityInfo = uni.getStorageSync('CityInfo') || {};
+  const locationId = cityInfo.locationId || UrlConfig.LifeIndexUrl.data.location;
+  
+  // 使用异步请求获取生活指数数据
+  const result = await new Promise((resolve) => {
+    uni.request({
+      url: UrlConfig.LifeIndexUrl.url,
+      method: 'GET',
+      data: UrlConfig.LifeIndexUrl.data,
+      dataType: 'json',
+      success: (res) => resolve(res.data),
+      fail: () => resolve({ code: '500' })
+    });
+  });
+  
+  if (result.code === '200' && result.daily) {
+    const indexData = result.daily;
+    
+    // 生活指数默认icon和color映射
+    const INDEX_CONFIG = {
+      '1': { icon: 'star', color: '#4CAF50' }, // 运动指数
+      '2': { icon: 'water', color: '#2196F3' }, // 洗车指数
+      '3': { icon: 'person', color: '#FF9800' }, // 穿衣指数
+      '4': { icon: 'location', color: '#9C27B0' }, // 钓鱼指数
+      '5': { icon: 'star', color: '#FF5722' }, // 紫外线指数
+      '9': { icon: 'help', color: '#607D8B' } // 感冒指数
+    };
+    
+    const indices = indexData.map(item => {
+      const config = INDEX_CONFIG[item.type] || { icon: 'help', color: '#9E9E9E' };
+      return {
+        type: item.type,
+        name: item.name,
+        value: item.category,
+        icon: config.icon,
+        color: config.color,
+        desc: item.text
+      };
+    });
+    
+    return {
+      code: '200',
+      data: indices
+    };
+  } else {
+    // 请求失败或数据错误时返回默认数据
+    return {
+      code: '500',
+      data: []
+    };
+  }
+};
+
+/**
+ * 搜索城市
+ * @param {string} keyword - 搜索关键词
+ * @returns {object} - 搜索结果
+ */
+export const searchCity = async (keyword) => {
+  // 由于是开发环境，返回模拟数据
+  const cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安'];
+  const result = cities.filter(city => city.includes(keyword));
+  
+  return {
+    code: '200',
+    data: result
+  };
+};
+
+/**
+ * 获取天气时景图片
+ * @param {string} city - 城市名称
+ * @returns {object} - 天气时景图片数据
+ */
+export const getWeatherScenes = async (city) => {
+  // 由于是开发环境，返回模拟数据
+  return {
+    code: '200',
+    data: [
+      {
+        image: 'https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
+        location: city,
+        time: '2024-05-20 14:30'
+      },
+      {
+        image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
+        location: city,
+        time: '2024-05-20 15:00'
+      },
+      {
+        image: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
+        location: city,
+        time: '2024-05-20 16:00'
+      }
+    ]
+  };
+};
             <hr>
 
             <h3><img src="assets/code-icon.svg" alt="Code Icon" class="list-icon"> 步骤四：编写辅助工具 (<code>utils/weather.js</code>)</h3>
-            <ul>
-                <li><strong>职责</strong>: 存放与天气业务相关的、可复用的纯函数。这些函数不涉及IO或状态变更，只负责计算。</li>
-                <li><strong>实现逻辑</strong>: <code>getAirQualityLevel</code> 函数接收一个 <code>aqi</code> 值，根据预设的阈值返回对应的等级、颜色和描述。</li>
-                <li><strong>知识点</strong>: 纯函数，单一职责原则。</li>
-            </ul>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：项目中的一些业务逻辑并不直接依赖于外部 API 或全局状态，而是对数据进行纯粹的计算或转换，例如根据AQI数值判断空气质量等级。将这类纯计算逻辑独立出来，可以提高代码的可测试性、可维护性和复用性。</p>
+            <p><strong>设计决策</strong>：创建一个专门存放这类辅助函数的 `weather.js` 文件。这些函数应该接收输入、返回输出，不产生副作用，也即“纯函数”。</p>
+
+            <h5>编码流程</h5>
+            <ol>
+                <li>创建 <code>/src/utils/weather.js</code> 文件。</li>
+                <li>定义 `getAirQualityLevel(aqi)` 函数，它接收一个AQI数值作为参数。</li>
+                <li>在函数内部，根据不同的AQI范围，返回包含 `level`, `color`, `desc` 的对象。</li>
+                <li>将 `getAirQualityLevel` 函数 `export` 导出，以便其他模块可以导入并使用。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 utils/weather.js 源代码</summary>
                 <div><pre><code class="language-javascript">/**
+ * 天气工具函数
+ */
+
+/**
  * 根据AQI值获取空气质量等级
  * @param {number} aqi - AQI值
- * @returns {object} - { level, color, desc }
+ * @returns {object} - 空气质量等级信息
  */
 export const getAirQualityLevel = (aqi) => {
   if (aqi <= 50) {
-    return { level: '优', color: '#00E400', /* ... */ };
+    return {
+      level: '优',
+      color: '#00E400',
+      desc: '空气质量令人满意，基本无空气污染'
+    };
   } else if (aqi <= 100) {
-    return { level: '良', color: '#FFFF00', /* ... */ };
-  } 
-  // ... 其他等级
+    return {
+      level: '良',
+      color: '#FFFF00',
+      desc: '空气质量可接受，但某些污染物可能对极少数异常敏感人群健康有较弱影响'
+    };
+  } else if (aqi <= 150) {
+    return {
+      level: '轻度污染',
+      color: '#FF7E00',
+      desc: '易感人群症状有轻度加剧，健康人群出现刺激症状'
+    };
+  } else if (aqi <= 200) {
+    return {
+      level: '中度污染',
+      color: '#FF0000',
+      desc: '进一步加剧易感人群症状，可能对健康人群心脏、呼吸系统有影响'
+    };
+  } else if (aqi <= 300) {
+    return {
+      level: '重度污染',
+      color: '#99004C',
+      desc: '心脏病和肺病患者症状显著加剧，运动耐受力降低，健康人群普遍出现症状'
+    };
+  } else {
+    return {
+      level: '严重污染',
+      color: '#7E0023',
+      desc: '健康人群运动耐受力降低，有明显强烈症状，提前出现某些疾病'
+    };
+  }
 };
 </code></pre></div>
             </details>
             <hr>
 
             <h3><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 步骤五：连接服务与视图 (<code>index.vue</code>)</h3>
-             <ul>
-                <li><strong>职责</strong>: 作为总指挥，在合适的时机（页面加载时）调用服务层，获取数据，并更新自己的响应式状态，从而驱动整个页面的刷新。</li>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>在 <code>&lt;script setup&gt;</code> 中，从 <code>utils</code> 目录导入所有需要的服务函数。</li>
-                        <li>使用 <code>onMounted</code> 生命周期钩子，在页面挂载后调用 <code>initData</code>。</li>
-                        <li><code>initData</code> 函数首先调用 <code>location.js</code> 中的 <code>getCurrentCity</code> 获取位置，然后调用 <code>store.js</code> 中的 <code>setCityInfo</code> 将位置信息存入全局状态。</li>
-                        <li>随后调用 <code>updateWeather</code> 函数，此函数内<strong>并行</strong>调用 <code>api.js</code> 中的多个接口 (<code>getCurrentWeather</code>, <code>get24hForecast</code> 等)。</li>
-                        <li>拿到所有API返回的数据后，更新 <code>index.vue</code> 中定义的各个 <code>ref</code> 变量。</li>
-                    </ol>
-                </li>
-                <li><strong>知识点</strong>: <code>onMounted</code> 生命周期，<code>ref</code> 响应式变量，<code>async/await</code> 在组件中的应用。</li>
-            </ul>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：让 `index.vue` 页面（父组件）成为一个“总指挥”，负责调用前面创建的各种服务，获取所有数据，然后分发给各个子组件进行展示。</p>
+            <p><strong>设计决策</strong>：我们将在 `onMounted` 生命周期钩子（页面首次加载时触发）中执行一个名为 `initData` 的总初始化函数。`initData` 首先调用 `location.js` 中的 `getCurrentCity` 获取位置，然后调用 `store.js` 中的 `setCityInfo` 将位置信息存入全局状态。随后，调用 `updateWeather` 函数，此函数内将**并行**调用 `api.js` 中的多个接口，并将获取到的数据分别更新到 `index.vue` 中定义的各个 `ref` 变量上。Vue的响应式系统会自动将这些更新后的数据传递给子组件，从而刷新UI。</p>
+            
+            <h5>编码流程</h5>
+            <ol>
+                <li>打开 `pages/index/index.vue` 文件。</li>
+                <li>在 `&lt;script setup&gt;` 顶部，从 `utils` 目录 `import` 所有需要的服务函数。</li>
+                <li>使用 `ref()` 为每个子组件所需的数据创建响应式变量，如 `currentWeather = ref({})`。</li>
+                <li>创建 `async` 函数 `updateWeather`，在其中 `await` 调用 `api.js` 中的各个数据获取函数，并将返回的数据赋值给对应的 `ref` 变量。</li>
+                <li>创建 `async` 函数 `initData`，在其中 `await` 调用 `getCurrentCity` 和 `setCityInfo`，然后 `await` 调用 `updateWeather`。</li>
+                <li>在 `onMounted` 钩子中调用 `initData()`。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 index.vue 脚本区源代码</summary>
                 <div><pre><code class="language-vue">&lt;script setup&gt;
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 // 1. 导入所有服务
 import { getCurrentWeather, get24hForecast, get7dForecast, getAirQuality, getLifeIndex } from '../../utils/api';
 import { getCityInfo, setCityInfo } from '../../utils/store';
 import { getCurrentCity } from '../../utils/location';
-import { getAirQualityLevel } from '../../utils/weather';
-// ...导入组件...
+// ...
 
-// 2. 定义 ref 变量，用于驱动UI
-const currentCity = computed(() => getCityInfo().city);
-const currentWeather = ref({ /* ...默认值... */ });
+// 2. 定义 ref 变量
+const currentWeather = ref({});
 const hourlyForecast = ref([]);
-const dailyForecast = ref([]);
-const airQuality = ref({ /* ...默认值... */ });
 // ...
 
 // 3. 核心数据更新函数
 const updateWeather = async () => {
-  // 调用 api.js 中的函数获取数据
-  const weatherRes = await getCurrentWeather(currentCity.value);
+  const city = getCityInfo().city;
+  const weatherRes = await getCurrentWeather(city);
   if (weatherRes.code === '200') {
-    // 更新 ref 变量
     currentWeather.value = weatherRes.data;
   }
-  
-  const airRes = await getAirQuality(currentCity.value);
-  if (airRes.code === '200') {
-    const airData = airRes.data;
-    const airLevel = getAirQualityLevel(airData.aqi); // 调用 weather.js
-    airQuality.value = { ...airData, color: airLevel.color };
-  }
-
   // ...获取其他天气数据...
 };
 
 // 4. 初始化函数
 const initData = async () => {
-  // 调用 location.js
   const currentLocation = await getCurrentCity();
-  // 调用 store.js
   setCityInfo(currentLocation);
-  
   await updateWeather();
 };
 
@@ -360,14 +855,6 @@ onMounted(() => {
 </code></pre></div>
             </details>
 
-            <h2>4. 课后任务 (进阶)</h2>
-            <ul>
-                <li><strong>任务</strong>: 在 <code>index.vue</code> 的 <code>updateWeather</code> 函数中，目前获取各类天气数据是<strong>串行</strong>的（一个接一个 <code>await</code>）。这会累加网络请求的时间。请使用 <code>Promise.all</code> 将这些独立的API请求改造为<strong>并行</strong>执行，以缩短总体的加载时间。</li>
-                <li><strong>目的</strong>: 掌握 <code>Promise.all</code> 的用法，理解并行与串行在异步编程中的性能差异，这是前端性能优化的一个重要技巧。</li>
-            </ul>
-            <hr>
-            <p><strong>教师提示</strong>: 本阶段是项目从“静态”到“动态”的质变，是整个课程的核心。务必强调服务分层的好处：<strong>高内聚、低耦合</strong>。<code>api.js</code> 只管数据获取与转换，<code>location.js</code> 只管定位，<code>store.js</code> 只管状态共享，各司其职，使得 <code>index.vue</code> 的逻辑变得清晰——只负责“调用”和“更新状态”，而不关心“如何实现”。这种架构思想比任何一个API的使用都更重要。</p>
-
             <div class="stage-nav">
                 <a href="stage-1.html">&larr; 返回阶段一</a>
                 <a href="stage-3.html">进入阶段三 &rarr;</a>
@@ -377,11 +864,6 @@ onMounted(() => {
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
-        document.querySelectorAll('pre code').forEach((block) => {
-            let content = block.innerHTML;
-            content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            block.innerHTML = content;
-        });
     </script>
 </body>
 </html>

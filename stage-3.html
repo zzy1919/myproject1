@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>阶段三：城市管理功能实现</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -24,13 +24,11 @@
             <ul>
                 <li><strong>掌握页面导航</strong>：熟练运用 <code>uni.navigateTo</code> 和 <code>uni.navigateBack</code> 实现跨页面跳转与返回。</li>
                 <li><strong>综合状态管理</strong>：学习在一个简易的 <code>store</code> 中同时管理对象（<code>cityInfo</code>）和列表（<code>myCities</code>），并实现增、删、持久化等操作。</li>
-                <li><strong>掌握复合组件</strong>：学习使用 <code>uni-swipe-action</code> 实现列表的左滑删除功能，提升应用交互体验。</li>
-                <li><strong>理解响应式联动</strong>：深入理解 Vue 3 的响应式核心——<code>computed</code> 和 <code>watch</code>，并利用它们实现跨页面状态同步，即城市页的修改能够自动触发首页的刷新。</li>
-                <li><strong>完成功能闭环</strong>：将城市选择、状态更新、页面返回、数据刷新等环节串联起来，完成“城市管理”这一核心功能的完整开发。</li>
+                <li><strong>掌握复合组件</strong>：学习使用 <code>uni-swipe-action</code> 实现列表的左滑删除功能。</li>
+                <li><strong>理解响应式联动</strong>：深入理解 Vue 3 的响应式核心——<code>computed</code> 和 <code>watch</code>，并利用它们实现跨页面状态同步。</li>
             </ul>
 
             <h2>2. 城市切换与数据刷新流程图 (Mermaid)</h2>
-            <p>此图清晰地展示了从用户点击城市到首页刷新数据的完整响应式流程。</p>
             <div class="mermaid">
             graph TD
                 subgraph "首页 index.vue"
@@ -61,40 +59,67 @@
             </div>
 
             <h2>3. 核心步骤详解</h2>
-
-            <h3><img src="assets/storage-icon.svg" alt="Storage Icon" class="list-icon"> 步骤一：扩展 <code>store.js</code> 以支持城市列表</h3>
-            <p>为了记录用户添加的城市，我们需要对 <code>utils/store.js</code> 进行扩展。</p>
+            
+            <h3><span class="emoji-icon">🗄️</span> 步骤一：扩展 <code>store.js</code> 以支持城市列表</h3>
+            <h5>设计流程</h5>
+            <p>为了实现城市管理，我们的全局状态 `store` 需要进化。除了记录“当前城市”外，还必须能够维护一个“我的城市”列表。我们规划的功能点如下：</p>
             <ul>
-                <li><strong>职责</strong>:
-                    <ol>
-                        <li>在 <code>store</code> 对象中新增 <code>myCities: []</code> 和 <code>hotCities: []</code> 两个数组。</li>
-                        <li>增加 <code>addMyCity</code> 和 <code>removeMyCity</code> 方法，用于添加和删除“我的城市”列表中的项。</li>
-                        <li>在这两个方法中，调用 <code>uni.setStorageSync</code>，确保列表的改动能被持久化。</li>
-                        <li>修改 <code>initStore</code> 函数，使其在应用启动时，也能从本地存储中加载 <code>myCities</code> 列表。</li>
-                    </ol>
-                </li>
-                <li><strong>知识点</strong>: 在 <code>reactive</code> 对象中操作数组，数组的 <code>push</code>, <code>splice</code>, <code>includes</code> 方法。</li>
+                <li><strong>状态</strong>: `store` 对象中需要一个 `myCities` 数组来存放用户添加的城市。</li>
+                <li><strong>添加</strong>: 需要一个 `addMyCity` 函数，当用户选择一个新城市时，可以将其加入 `myCities` 列表（并要去重）。</li>
+                <li><strong>删除</strong>: 需要一个 `removeMyCity` 函数，允许用户从 `myCities` 列表中移除城市。</li>
+                <li><strong>持久化</strong>: 用户的城市列表应该在关闭小程序后依然存在。因此，任何对 `myCities` 的修改都应立即通过 `uni.setStorageSync` 保存到本地存储。应用启动时，也应从本地存储加载。</li>
             </ul>
+
+            <h5>编码流程</h5>
+            <ol>
+                <li>打开 `utils/store.js` 文件。</li>
+                <li>在 `reactive` 对象中，新增 `myCities: []` 和 `hotCities: []` 两个数组。`hotCities` 可作为固定数据。</li>
+                <li>实现 `addMyCity(city)` 函数，内部要先判断 `store.myCities` 中是否已存在该城市，如果不存在再 `push`，然后调用 `uni.setStorageSync`。</li>
+                <li>实现 `removeMyCity(index)` 函数，使用 `splice` 方法移除指定索引的城市，然后调用 `uni.setStorageSync`。</li>
+                <li>在文件底部的 `initStore` 函数中，增加从本地存储读取 `myCities` 并赋值给 `store.myCities` 的逻辑。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 utils/store.js 扩展后源代码</summary>
                 <div><pre><code class="language-javascript">import { reactive } from 'vue';
 
+// 创建全局状态
 const store = reactive({
-  cityInfo: { /* ... */ },
-  // 新增：我的城市列表
+  // 当前城市信息
+  cityInfo: {
+    city: '北京',
+    longitude: 116.41,
+    latitude: 39.92,
+    locationId: '101010100'
+  },
+  // 我的城市列表
   myCities: ['北京', '上海', '广州'],
-  // 新增：热门城市列表
+  // 热门城市列表
   hotCities: ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安']
 });
 
-// ... setCityInfo, getCityInfo ...
+/**
+ * 设置当前城市信息
+ * @param {Object} cityInfo - 城市信息对象，包含city、longitude、latitude、locationId
+ */
+export const setCityInfo = (cityInfo) => {
+  store.cityInfo = cityInfo;
+  // 保存到本地存储，使用单个键"CityInfo"
+  uni.setStorageSync('CityInfo', cityInfo);
+};
+
+/**
+ * 获取当前城市信息
+ * @returns {Object} - 当前城市信息对象
+ */
+export const getCityInfo = () => {
+  return store.cityInfo;
+};
 
 /**
  * 添加城市到我的城市列表
  * @param {string} city - 城市名称
  */
 export const addMyCity = (city) => {
-  // 如果城市不存在，则添加
   if (!store.myCities.includes(city)) {
     store.myCities.push(city);
     // 保存到本地存储
@@ -104,32 +129,48 @@ export const addMyCity = (city) => {
 
 /**
  * 从我的城市列表中删除城市
- * @param {number} index - 城市在列表中的索引
+ * @param {string|number} city - 城市名称或索引
  */
-export const removeMyCity = (index) => {
-  if (index > -1) {
+export const removeMyCity = (city) => {
+  let index;
+  if (typeof city === 'string') {
+    index = store.myCities.indexOf(city);
+  } else {
+    index = city;
+  }
+  
+  if (index !== -1) {
     store.myCities.splice(index, 1);
     // 保存到本地存储
     uni.setStorageSync('myCities', store.myCities);
   }
 };
 
+/**
+ * 获取我的城市列表
+ * @returns {Array} - 我的城市列表
+ */
 export const getMyCities = () => {
   return store.myCities;
 };
 
+/**
+ * 获取热门城市列表
+ * @returns {Array} - 热门城市列表
+ */
 export const getHotCities = () => {
   return store.hotCities;
 };
 
 // 初始化时从本地存储加载数据
 const initStore = () => {
+  // 加载城市信息
   const cityInfo = uni.getStorageSync('CityInfo');
   if (cityInfo) {
     store.cityInfo = cityInfo;
   }
   
-  // 新增：加载我的城市列表
+  // 加载我的城市列表
   const cities = uni.getStorageSync('myCities');
   if (cities && Array.isArray(cities)) {
     store.myCities = cities;
@@ -143,163 +184,277 @@ export default store;
             </details>
             <hr>
 
-            <h3><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 步骤二：构建城市管理页面 (<code>city.vue</code>)</h3>
-            <p>这个页面是用户与城市列表交互的界面。</p>
-            <ul>
-                <li><strong>UI布局</strong>: 使用 <code>uni-nav-bar</code> 提供标题和返回按钮，<code>uni-search-bar</code> 提供搜索功能，页面主体分为“当前城市”、“热门城市”和“我的城市”三个区块。其中“我的城市”列表项包裹在 <code>uni-swipe-action</code> 中，以实现左滑删除。</li>
-                <li><strong>逻辑实现</strong>:
-                    <ol>
-                        <li><code>onMounted</code> 中，从 <code>store.js</code> 调用 <code>getCityInfo</code>, <code>getHotCities</code>, <code>getMyCities</code> 获取数据，填充页面的初始状态。</li>
-                        <li><code>selectCity(city)</code> 函数是核心。当用户点击一个城市时：
-                            <ul>
-                                <li>调用 <code>location.js</code> 的 <code>updateCityInfoByCity(city)</code> 获取该城市的完整信息（包括经纬度和<code>locationId</code>）。</li>
-                                <li>调用 <code>store.js</code> 的 <code>setCityInfo()</code> 更新全局状态。</li>
-                                <li>调用 <code>store.js</code> 的 <code>addMyCity()</code> 将其加入“我的城市”列表（如果不存在）。</li>
-                                <li>调用 <code>uni.navigateBack()</code> 返回首页。</li>
-                            </ul>
-                        </li>
-                        <li><code>deleteCity(index)</code> 函数在用户左滑删除时触发，调用 <code>store.js</code> 的 <code>removeMyCity()</code>。</li>
-                    </ol>
-                </li>
-                <li><strong>知识点</strong>: <code>onMounted</code>, <code>uni-nav-bar</code>, <code>uni-swipe-action</code> 的使用，函数的导入与调用。</li>
-            </ul>
-            <details>
-                <summary>点击展开/折叠 pages/city/city.vue 源代码</summary>
-                <div><pre><code class="language-vue">&lt;template&gt;
-  &lt;view class="city-container"&gt;
-    &lt;uni-nav-bar title="城市管理" left-text="返回" left-icon="left" @click-left="onBack"&gt;&lt;/uni-nav-bar&gt;
-    
-    &lt;!-- 搜索区域 --&gt;
-    &lt;view class="search-section"&gt;
-      &lt;uni-search-bar placeholder="搜索城市" @input="onSearch"&gt;&lt;/uni-search-bar&gt;
-    &lt;/view&gt;
-    
-    &lt;view class="city-list"&gt;
-      &lt;!-- 热门城市 --&gt;
-      &lt;view class="hot-cities"&gt;
-        &lt;text class="section-title"&gt;热门城市&lt;/text&gt;
-        &lt;view class="hot-cities-grid"&gt;
-          &lt;view class="city-item" v-for="city in hotCities" :key="city" @click="selectCity(city)"&gt;
-            {{ city }}
-          &lt;/view&gt;
-        &lt;/view&gt;
-      &lt;/view&gt;
-      
-      &lt;!-- 我的城市 --&gt;
-      &lt;view class="my-cities"&gt;
-        &lt;text class="section-title"&gt;我的城市&lt;/text&gt;
-        &lt;uni-swipe-action&gt;
-          &lt;uni-swipe-action-item v-for="(city, index) in myCities" :key="city" :right-options="rightOptions" @click-right="deleteCity(index)"&gt;
-            &lt;uni-list-item :title="city" @click="selectCity(city)"&gt;&lt;/uni-list-item&gt;
-          &lt;/uni-swipe-action-item&gt;
-        &lt;/uni-swipe-action&gt;
-      &lt;/view&gt;
-    &lt;/view&gt;
-  &lt;/view&gt;
-&lt;/template&gt;
-
-&lt;script setup&gt;
-import { ref, onMounted } from 'vue';
-import { getCityInfo, setCityInfo, getMyCities, getHotCities, removeMyCity, addMyCity } from '../../utils/store';
-import { updateCityInfoByCity } from '../../utils/location';
-
-const hotCities = ref([]);
-const myCities = ref([]);
-
-const rightOptions = [{ text: '删除', style: { backgroundColor: '#FF4757' } }];
-
-const onBack = () => uni.navigateBack();
-
-// 核心：选择城市
-const selectCity = async (city) => {
-  // 1. 获取新城市的完整信息
-  const cityInfo = await updateCityInfoByCity(city);
-  // 2. 更新全局状态
-  setCityInfo(cityInfo);
-  // 3. 添加到"我的城市"列表
-  addMyCity(city);
-  // 4. 返回首页
-  uni.navigateBack();
-};
-
-// 删除城市
-const deleteCity = (index) => {
-  removeMyCity(index);
-  // 直接修改 ref 来更新UI，因为 store 的数组变化不会直接通知到这里
-  myCities.value = getMyCities(); 
-};
-
-// 页面加载时从 store 初始化数据
-onMounted(() => {
-  hotCities.value = getHotCities();
-  myCities.value = getMyCities();
-});
-&lt;/script&gt;
-</code></pre></div>
-            </details>
+            <h3><span class="emoji-icon">🧩</span> 步骤二：构建城市管理页面 (<code>city.vue</code>)</h3>
+            <h5>设计流程</h5>
+            <p>这个页面是城市管理功能的核心UI。设计上，它需要为用户提供清晰的城市列表（如热门城市、我的城市），并提供搜索功能。核心交互是：当用户点击任何一个城市时，应用应将此城市设为“当前城市”，并自动返回天气主页显示该城市的天气。</p>
+            
+            <h5>编码流程</h5>
+            <ol>
+                <li>在 `pages` 目录下创建 `city/city.vue`，并在 `pages.json` 中注册路由。</li>
+                <li>在模板中，使用 `uni-nav-bar` 创建顶部导航，并绑定返回事件。使用 `uni-search-bar` 创建搜索框。</li>
+                <li>使用 `v-for` 分别渲染“热门城市”和“我的城市”列表。将“我的城市”列表项包裹在 `uni-swipe-action-item` 中，并配置 `right-options` 实现左滑删除。</li>
+                <li>在脚本中，从 `store.js` 导入 `getMyCities`, `getHotCities`, `setCityInfo`, `addMyCity` 等函数。</li>
+                <li>在 `onMounted` 钩子中，调用 `getMyCities` 和 `getHotCities`，将返回的列表赋值给本地 `ref` 变量，以驱动UI渲染。</li>
+                <li>实现 `selectCity(city)` 核心函数。它接收城市名作为参数，调用 `location.js` 的 `updateCityInfoByCity` 获取完整信息，然后调用 `setCityInfo` 更新全局状态，最后调用 `uni.navigateBack()` 返回首页。</li>
+            </ol>
+                        <details>
+                            <summary>点击展开/折叠 pages/city/city.vue 源代码</summary>
+                            <div><pre><code class="language-vue">&lt;template&gt;
+              &lt;view class="city-container"&gt;
+                &lt;uni-nav-bar title="城市管理" left-text="返回" left-icon="left" @click-left="onBack"&gt;&lt;/uni-nav-bar&gt;
+                
+                &lt;view class="search-section"&gt;
+                  &lt;uni-search-bar placeholder="搜索城市" @input="onSearch" @confirm="onSearchConfirm"&gt;&lt;/uni-search-bar&gt;
+                &lt;/view&gt;
+                
+                &lt;view class="city-list"&gt;
+                  &lt;view class="current-city"&gt;
+                    &lt;text class="section-title"&gt;当前城市&lt;/text&gt;
+                    &lt;uni-list-item :title="currentCity" @click="selectCity(currentCity)"&gt;&lt;/uni-list-item&gt;
+                  &lt;/view&gt;
+                  
+                  &lt;view class="hot-cities"&gt;
+                    &lt;text class="section-title"&gt;热门城市&lt;/text&gt;
+                    &lt;view class="hot-cities-grid"&gt;
+                      &lt;view class="city-item" v-for="city in hotCities" :key="city" @click="selectCity(city)"&gt;
+                        {{ city }}
+                      &lt;/view&gt;
+                    &lt;/view&gt;
+                  &lt;/view&gt;
+                  
+                  &lt;view class="my-cities"&gt;
+                    &lt;text class="section-title"&gt;我的城市&lt;/text&gt;
+                    &lt;uni-swipe-action&gt;
+                      &lt;uni-swipe-action-item v-for="(city, index) in myCities" :key="city" :right-options="rightOptions" @click="selectCity(city)" @click-right="deleteCity(index)"&gt;
+                        &lt;uni-list-item :title="city"&gt;&lt;/uni-list-item&gt;
+                      &lt;/uni-swipe-action-item&gt;
+                    &lt;/uni-swipe-action&gt;
+                  &lt;/view&gt;
+                &lt;/view&gt;
+              &lt;/view&gt;
+            &lt;/template&gt;
+            
+            &lt;script setup&gt;
+            import { ref, onMounted } from 'vue';
+            import { searchCity } from '../../utils/api';
+            import { getCityInfo, setCityInfo, getMyCities, getHotCities, removeMyCity, addMyCity } from '../../utils/store';
+            
+            // 当前城市
+            const currentCity = ref('北京');
+            
+            // 热门城市
+            const hotCities = ref([]);
+            
+            // 我的城市
+            const myCities = ref([]);
+            
+            // 搜索结果
+            const searchResult = ref([]);
+            
+            // 右侧滑动选项
+            const rightOptions = [
+              {
+                text: '删除',
+                style: {
+                  backgroundColor: '#FF4757'
+                }
+              }
+            ];
+            
+            // 返回上一页
+            const onBack = () => {
+              uni.navigateBack();
+            };
+            
+            // 搜索
+            const onSearch = (e) => {
+              // 搜索逻辑待实现
+              console.log('搜索:', e.value);
+            };
+            
+            // 搜索确认
+            const onSearchConfirm = (e) => {
+              // 搜索确认逻辑待实现
+              console.log('搜索确认:', e.value);
+            };
+            
+            // 选择城市
+            const selectCity = async (city) => {
+              // 导入updateCityInfoByCity函数
+              const { updateCityInfoByCity } = await import('../../utils/location');
+              // 获取城市信息
+              const cityInfo = await updateCityInfoByCity(city);
+              // 设置当前城市信息
+              setCityInfo(cityInfo);
+              // 添加到我的城市列表
+              addMyCity(city);
+              // 返回上一页
+              uni.navigateBack();
+            };
+            
+            // 删除城市
+            const deleteCity = (index) => {
+              // 从我的城市列表中删除
+              removeMyCity(index);
+            };
+            
+            // 页面加载时初始化数据
+            onMounted(() => {
+              // 获取当前城市信息
+              const cityInfo = getCityInfo();
+              currentCity.value = cityInfo.city;
+              // 获取热门城市
+              hotCities.value = getHotCities();
+              // 获取我的城市列表
+              myCities.value = getMyCities();
+            });
+            &lt;/script&gt;
+            
+            &lt;style scoped&gt;
+            .city-container {
+              padding: 20rpx;
+              background-color: #f5f5f5;
+              min-height: 100vh;
+            }
+            
+            .search-section {
+              margin-bottom: 20rpx;
+            }
+            
+            .city-list {
+              background-color: #fff;
+              border-radius: 10rpx;
+              padding: 20rpx;
+            }
+            
+            .section-title {
+              font-size: 28rpx;
+              color: #666;
+              margin: 20rpx 0;
+              display: block;
+            }
+            
+            .hot-cities-grid {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 20rpx;
+              margin-bottom: 30rpx;
+            }
+            
+            .city-item {
+              width: 120rpx;
+              height: 60rpx;
+              background-color: #f0f0f0;
+              border-radius: 30rpx;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 28rpx;
+              color: #333;
+            }
+            
+            .city-item:active {
+              background-color: #e0e0e0;
+            }
+            
+            .current-city,
+            .hot-cities,
+            .my-cities {
+              margin-bottom: 30rpx;
+            }
+            &lt;/style&gt;
+            </code></pre></div>
+                        </details>
             <hr>
 
-            <h3><img src="assets/code-icon.svg" alt="Code Icon" class="list-icon"> 步骤三：改造首页以响应城市变化 (<code>index.vue</code>)</h3>
-            <p>这是实现自动刷新的关键一步，也是 Vue 响应式魅力的体现。</p>
-            <ul>
-                <li><strong>实现原理</strong>: 我们不使用 <code>onShow</code> 来手动检查，而是利用 <code>computed</code> 和 <code>watch</code> 建立一个响应式链条。</li>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>在 <code>index.vue</code> 中，我们创建一个<strong>计算属性 <code>currentCity</code></strong>，它的值依赖于 <code>store.js</code> 中的 <code>getCityInfo()</code>。</li>
-                        <li>我们创建一个 <strong><code>watch</code> 监听器</strong>，来“监视”这个 <code>currentCity</code> 计算属性的变化。</li>
-                    </ol>
-                </li>
-                <li><strong>联动流程</strong>:
-                    <ul>
-                        <li>当在 <code>city.vue</code> 页面调用 <code>setCityInfo()</code> 时，<code>store.js</code> 中的 <code>reactive</code> 对象发生变化。</li>
-                        <li>Vue 的响应式系统会侦测到这个变化，并通知所有依赖该状态的 <code>computed</code> 属性重新计算。</li>
-                        <li><code>index.vue</code> 中的 <code>currentCity</code> 因此得到了一个新的值。</li>
-                        <li><code>watch</code> 监听到 <code>currentCity</code> 的值发生了改变，于是执行其回调函数，调用 <code>updateWeather()</code>。</li>
-                        <li>页面天气数据被刷新，完成闭环。</li>
-                    </ul>
-                </li>
-            </ul>
+            <h3><span class="emoji-icon">💻</span> 步骤三：改造首页以响应城市变化 (<code>index.vue</code>)</h3>
+            <h5>设计流程</h5>
+            <p>这是实现自动刷新的关键。当从城市页返回时，首页需要知道当前城市已变更，并自动刷新天气。如果使用 `onShow` 生命周期钩子来做，代码会比较繁琐（需要手动比较前后城市名）。更优雅的方案是利用Vue的响应式系统。</p>
+            <p>我们的设计是：创建一个依赖 `store` 的计算属性 <code>currentCity</code>。当 `store` 的状态被 <code>city.vue</code> 改变时，这个计算属性会自动更新。我们再用 `watch` 监听这个计算属性的变化，一旦变化就触发天气刷新函数。这样就形成了一个无需手动干预的、响应式的数据闭环。</p>
+
+            <h5>编码流程</h5>
+            <ol>
+                <li>在 `index.vue` 的脚本区，从`vue`导入 `computed` 和 `watch`。</li>
+                <li>从 `store.js` 导入 `getCityInfo`。</li>
+                <li>创建一个名为 `currentCity` 的计算属性，其 `getter` 函数返回 `getCityInfo().city`。</li>
+                <li>创建一个 `watch`，监听 `currentCity`。在回调函数中，判断新旧值是否不同，如果不同，则调用 `updateWeather()` 函数。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 index.vue 响应式相关代码</summary>
                 <div><pre><code class="language-vue">&lt;script setup&gt;
 import { ref, onMounted, computed, watch } from 'vue';
 import { getCityInfo, setCityInfo } from '../../utils/store';
-// ...其他导入
+import { getCurrentWeather, get24hForecast, get7dForecast, getAirQuality, getLifeIndex } from '../../utils/api';
+import { getCurrentCity } from '../../utils/location';
+import { getAirQualityLevel } from '../../utils/weather';
 
-// 1. 创建一个计算属性，它的值依赖于 store
+// 当前城市 (计算属性，响应式地从 store 获取)
 const currentCity = computed(() => getCityInfo().city);
 
-// ...其他 ref 定义...
+// ... 其他 ref 定义 (currentWeather, hourlyForecast, dailyForecast, airQuality, lifeIndices) ...
+const currentWeather = ref({});
+const hourlyForecast = ref([]);
+const dailyForecast = ref([]);
+const airQuality = ref({});
+const lifeIndices = ref([]);
+const refreshing = ref(false); // 用于下拉刷新
 
+// 更新天气数据的核心函数
 const updateWeather = async () => {
-  // ...更新天气的逻辑...
-  console.log(`开始获取【${currentCity.value}】的天气数据...`);
+  // 可以考虑使用 Promise.all 并行请求以提高效率
+  const city = currentCity.value;
+  const [weatherRes, hourlyRes, dailyRes, airRes, lifeRes] = await Promise.all([
+    getCurrentWeather(city),
+    get24hForecast(city),
+    get7dForecast(city),
+    getAirQuality(city),
+    getLifeIndex(city)
+  ]);
+
+  if (weatherRes.code === '200') currentWeather.value = weatherRes.data;
+  if (hourlyRes.code === '200') hourlyForecast.value = hourlyRes.data;
+  if (dailyRes.code === '200') dailyForecast.value = dailyRes.data;
+  if (airRes.code === '200') {
+    const airData = airRes.data;
+    const airLevel = getAirQualityLevel(airData.aqi);
+    airQuality.value = { ...airData, level: airLevel.level, color: airLevel.color, desc: airLevel.desc };
+  }
+  if (lifeRes.code === '200') lifeIndices.value = lifeRes.data;
 };
 
-const initData = async () => { /* ... */ };
+// 页面初始化数据函数 (首次加载和下拉刷新时调用)
+const initData = async () => {
+  // 如果 store 中没有城市信息，则尝试获取当前位置
+  if (!getCityInfo().city || getCityInfo().city === '北京') { // 假设北京是初始默认值
+    const currentLocation = await getCurrentCity();
+    setCityInfo(currentLocation);
+  }
+  await updateWeather();
+};
 
+// 页面加载时触发数据初始化
 onMounted(() => {
   initData();
 });
 
-// 2. 监听这个计算属性的变化
+// 监听 currentCity 变化，当城市改变时自动刷新天气数据
 watch(currentCity, (newCity, oldCity) => {
-  // 确保城市真的发生了变化再刷新
   if (newCity && newCity !== oldCity) {
     updateWeather();
   }
 });
 &lt;/script&gt;
-</code></pre></div>
-            </details>
+            </code></pre></div>
+                        </details>
+            <hr>
 
             <h2>4. 课后任务 (可选)</h2>
             <ul>
-                <li><strong>任务</strong>: 目前 <code>city.vue</code> 中的搜索功能是缺失的。请在 <code>utils/api.js</code> 中实现 <code>searchCity</code> 函数（可对接和风天气的城市搜索API，或暂时返回模拟数据），并在 <code>city.vue</code> 中完成搜索逻辑：用户输入时，调用此API，并将结果展示在一个临时的搜索结果列表中。</li>
-                <li><strong>目的</strong>: 巩固 API 封装与调用，并练习处理用户输入、异步搜索和结果展示的常见场景。可以额外挑战一下“防抖”实现。</li>
+                <li><strong>任务</strong>: 目前 <code>city.vue</code> 中的搜索功能是缺失的。请在 <code>utils/api.js</code> 中实现 <code>searchCity</code> 函数，并在 <code>city.vue</code> 中完成搜索逻辑。</li>
+                <li><strong>目的</strong>: 巩固 API 封装与调用，并练习处理用户输入、异步搜索和结果展示的常见场景。</li>
             </ul>
             <hr>
-            <p><strong>教师提示</strong>: 本阶段的精髓在于 <code>computed</code> + <code>watch</code> 组成的响应式数据流。务必向学生讲清这个“魔法”背后的原理，让他们理解 Vue 是如何自动完成状态同步的。这比使用 <code>onShow</code> 配合全局事件总线或手动比对的传统方法更优雅、更符合 Vue 的设计哲学。强调 <code>store</code> 作为单一数据源的重要性。</p>
+            <p><strong>教师提示</strong>: 本阶段的精髓在于 <code>computed</code> + <code>watch</code> 组成的响应式数据流。务必向学生讲清这个“魔法”背后的原理，让他们理解 Vue 是如何自动完成状态同步的。这比使用 <code>onShow</code> 配合全局事件总线或手动比对的传统方法更优雅、更符合 Vue 的设计哲学。</p>
             
             <div class="stage-nav">
                 <a href="stage-2.html">&larr; 返回阶段二</a>
@@ -310,11 +465,6 @@ watch(currentCity, (newCity, oldCity) => {
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
-        document.querySelectorAll('pre code').forEach((block) => {
-            let content = block.innerHTML;
-            content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            block.innerHTML = content;
-        });
     </script>
 </body>
 </html>

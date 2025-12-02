@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>阶段四：UI优化与项目发布</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -23,10 +23,9 @@
             <h2>1. 教学目标</h2>
             <ul>
                 <li><strong>掌握高级UI交互</strong>：学习使用 <code>uni-popup</code> 实现弹窗，并通过 <code>props</code> 和 <code>emit</code> 实现父子组件间的交互。</li>
-                <li><strong>提升用户体验(UX)</strong>：掌握在 <code>&lt;scroll-view&gt;</code> 中实现“下拉刷新”功能，为用户提供主动更新数据的能力。</li>
+                <li><strong>提升用户体验(UX)</strong>：掌握在 <code>&lt;scroll-view&gt;</code> 中实现“下拉刷新”功能。</li>
                 <li><strong>理解资源优化</strong>：(可选) 了解如何封装一个 <code>SvgIcon</code> 组件，以更灵活地管理和使用矢量图标。</li>
                 <li><strong>掌握项目交付</strong>：学习配置 <code>manifest.json</code>，执行打包命令，并了解将项目上传到微信开发者工具进行发布的完整流程。</li>
-                <li><strong>培养产品意识</strong>：理解代码功能完成不等于项目结束，UI/UX的打磨和最终的发布是交付高质量产品的必要环节。</li>
             </ul>
 
             <h2>2. 优化与发布流程图 (Mermaid)</h2>
@@ -53,83 +52,29 @@
             </div>
 
             <h2>3. 核心步骤详解</h2>
-
-            <h3><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 步骤一：实现生活指数详情弹窗</h3>
-            <p>当用户点击首页的某个生活指数时，我们弹出一个浮层来展示更详细的说明。</p>
             
-            <h4>1. 创建详情弹窗组件 <code>IndexDetailPopup.vue</code></h4>
-            <ul>
-                <li><strong>职责</strong>: 接收要展示的指数数据和控制其显示的 <code>visible</code> 状态，并能通知父组件关闭自己。</li>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>内部使用 <code>uni-popup</code> 作为弹窗的基础。</li>
-                        <li>定义 <code>visible</code> 和 <code>indexData</code> 两个 <code>props</code>。</li>
-                        <li>使用 <code>watch</code> 监听 <code>visible</code> prop 的变化，当它变为 <code>true</code> 时调用 <code>popup.open()</code>，变为 <code>false</code> 时调用 <code>popup.close()</code>。</li>
-                        <li>当用户点击弹窗内的“关闭”按钮时，通过 <code>emit('close')</code> 通知父组件。</li>
-                    </ol>
+            <h3><span class="emoji-icon">🧩</span> 步骤一：实现生活指数详情弹窗</h3>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：当用户点击首页的某个生活指数时，我们不应该跳转页面，而是弹出一个浮层来展示更详细的说明，这样交互更轻量。</p>
+            <p><strong>设计决策</strong>：采用父子组件通信的方式。父组件 `index.vue` 负责管理弹窗的“是否显示”状态 (`visible`) 和“显示什么内容” (`currentIndex`)。当 `LifeIndex.vue` 被点击时，它只负责告诉父组件“我被点击了，相关数据是...”，而不关心弹窗如何显示。弹窗组件 `IndexDetailPopup.vue` 则更“单纯”，它只根据父组件给的 `props` 来决定自己是否显示、显示什么内容。</p>
+
+            <h5>编码流程</h5>
+            <ol>
+                <li><strong>创建弹窗组件</strong>: 创建 `components/IndexDetailPopup.vue`。内部使用 `uni-popup`，并定义好 `visible` 和 `indexData` 两个 props，以及一个 `close` 事件。</li>
+                <li><strong>监听Props变化</strong>: 在弹窗组件中，使用 `watch` 监听 `props.visible` 的变化，当 `true` 时打开 `uni-popup`，`false` 时关闭。</li>
+                <li><strong>父组件管理状态</strong>: 在 `index.vue` 中，定义 `detailVisible` 和 `currentIndex` 两个 `ref` 变量。</li>
+                <li><strong>连接父子</strong>:
+                    <ul>
+                        <li>在 `index.vue` 的模板中，监听 `LifeIndex` 的 `@show-detail` 事件，触发一个方法来修改 `detailVisible` 和 `currentIndex`。</li>
+                        <li>将 `detailVisible` 和 `currentIndex` 作为 props 传入 `IndexDetailPopup` 组件。</li>
+                        <li>监听 `IndexDetailPopup` 的 `@close` 事件，将 `detailVisible` 改为 `false`。</li>
+                    </ul>
                 </li>
-                <li><strong>知识点</strong>: <code>uni-popup</code> 的使用，<code>watch</code> 监听 <code>props</code> 变化，<code>emit</code> 自定义事件。</li>
-            </ul>
-            <details>
-                <summary>点击展开/折叠 IndexDetailPopup.vue 源代码</summary>
-                <div><pre><code class="language-vue">&lt;template&gt;
-  &lt;uni-popup ref="popup" type="center" :is-mask-click="false"&gt;
-    &lt;view class="popup-content"&gt;
-      &lt;text class="popup-title"&gt;{{ indexData.name }}&lt;/text&gt;
-      &lt;view class="popup-body"&gt;
-        &lt;uni-icons :type="indexData.icon" size="64" :color="indexData.color"&gt;&lt;/uni-icons&gt;
-        &lt;text class="popup-value"&gt;{{ indexData.value }}&lt;/text&gt;
-        &lt;text class="popup-desc"&gt;{{ indexData.desc }}&lt;/text&gt;
-      &lt;/view&gt;
-      &lt;button @click="onClose"&gt;关闭&lt;/button&gt;
-    &lt;/view&gt;
-  &lt;/uni-popup&gt;
-&lt;/template&gt;
-
-&lt;script setup&gt;
-import { defineProps, defineEmits, ref, watch } from 'vue';
-
-const props = defineProps({
-  visible: { type: Boolean, default: false },
-  indexData: { type: Object, default: () => ({}) }
-});
-
-const emit = defineEmits(['close']);
-const popup = ref(null);
-
-// 监听父组件传来的 visible 状态，控制弹窗的打开和关闭
-watch(() => props.visible, (newVal) => {
-  if (!popup.value) return;
-  if (newVal) {
-    popup.value.open();
-  } else {
-    popup.value.close();
-  }
-});
-
-// 当用户点击关闭按钮时，通知父组件
-const onClose = () => {
-  emit('close');
-};
-&lt;/script&gt;
-</code></pre></div>
-            </details>
-
-            <h4>2. 在 <code>index.vue</code> 中使用弹窗</h4>
-            <ul>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>在 <code>&lt;script setup&gt;</code> 中定义 <code>detailVisible</code> 和 <code>currentIndex</code> 两个 <code>ref</code> 变量，用于控制弹窗的显隐和内容。</li>
-                        <li>定义 <code>showIndexDetail</code> 和 <code>closePopup</code> 两个方法，分别用于打开和关闭弹窗。</li>
-                        <li>在模板中，监听 <code>LifeIndex</code> 组件派发的 <code>@show-detail</code> 事件，并调用 <code>showIndexDetail</code> 方法。</li>
-                        <li>将 <code>detailVisible</code> 和 <code>currentIndex</code> 作为 <code>props</code> 传递给 <code>IndexDetailPopup</code> 组件，并监听其 <code>@close</code> 事件。</li>
-                    </ol>
-                </li>
-            </ul>
+            </ol>
             <details>
                 <summary>点击展开/折叠 index.vue 与弹窗交互的相关代码</summary>
                 <div><pre><code class="language-vue">&lt;template&gt;
-    &lt;!-- ...其他组件... --&gt;
+    &lt;!-- ... 其他组件 ... --&gt;
     
     &lt;!-- 生活指数，监听子组件的 show-detail 事件 --&gt;
     &lt;LifeIndex :index-data="lifeIndices" @show-detail="showIndexDetail"&gt;&lt;/LifeIndex&gt;
@@ -162,31 +107,20 @@ const closePopup = () => {
             </details>
             <hr>
 
-            <h3><img src="assets/deploy-icon.svg" alt="Deploy Icon" class="list-icon"> 步骤二：实现下拉刷新功能</h3>
-            <p>本项目未使用页面级的下拉刷新，而是在 <code>index.vue</code> 内部使用了 <code>&lt;scroll-view&gt;</code> 组件提供的下拉刷新，这种方式更灵活。</p>
-             <ul>
-                <li><strong>实现逻辑</strong>:
-                    <ol>
-                        <li>在 <code>index.vue</code> 的模板中，将页面主体内容包裹在 <code>&lt;scroll-view&gt;</code> 中。</li>
-                        <li>为 <code>&lt;scroll-view&gt;</code> 添加关键属性：
-                            <ul>
-                                <li><code>refresher-enabled="true"</code>: 开启下拉刷新。</li>
-                                <li><code>@refresherrefresh="onRefresh"</code>: 绑定下拉被触发的事件。</li>
-                                <li><code>:refresher-triggered="refreshing"</code>: 动态绑定一个 <code>ref</code> 变量，用于手动控制刷新动画的显示与隐藏。</li>
-                            </ul>
-                        </li>
-                        <li>在 <code>&lt;script setup&gt;</code> 中，定义 <code>refreshing = ref(false)</code>。</li>
-                        <li>创建 <code>onRefresh</code> 方法。当用户下拉时，该方法被调用：
-                            <ul>
-                                <li>将 <code>refreshing.value</code> 设为 <code>true</code>，显示刷新动画。</li>
-                                <li>调用 <code>initData()</code> 或 <code>updateWeather()</code> 重新获取数据。</li>
-                                <li>在数据获取完成后（<code>await</code> 之后），将 <code>refreshing.value</code> 设为 <code>false</code>，收起刷新动画。</li>
-                            </ul>
-                        </li>
-                    </ol>
-                </li>
-                <li><strong>知识点</strong>: <code>&lt;scroll-view&gt;</code> 组件的下拉刷新功能。</li>
-            </ul>
+            <h3><span class="emoji-icon">🚀</span> 步骤二：实现下拉刷新功能</h3>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：为用户提供一个主动、便捷的方式来刷新天气数据。</p>
+            <p><strong>设计决策</strong>：不使用页面级的全局下拉刷新，因为它会作用于整个窗口。我们选择 `scroll-view` 组件内置的下拉刷新功能，这样可以更精细地控制刷新区域，且实现起来更简单，只需在 `scroll-view` 上配置几个属性并绑定一个事件即可。</p>
+            
+            <h5>编码流程</h5>
+            <ol>
+                <li>在 `index.vue` 的模板中，找到最外层的 `&lt;scroll-view&gt;`。</li>
+                <li>为其添加 `refresher-enabled="true"` 来开启下拉刷新功能。</li>
+                <li>添加 `@refresherrefresh="onRefresh"` 来绑定下拉被触发时要执行的方法。</li>
+                <li>添加 `:refresher-triggered="refreshing"`，将其同一个名为 `refreshing` 的 `ref` 变量绑定。这个变量用来告诉 `scroll-view` 何时开始/结束刷新动画。</li>
+                <li>在脚本中，创建 `refreshing = ref(false)`。</li>
+                <li>创建 `async` 方法 `onRefresh`。在此方法中，先设置 `refreshing.value = true`，然后 `await` 调用数据获取函数（如 `initData`），数据返回后，再设置 `refreshing.value = false`。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 index.vue 下拉刷新相关代码</summary>
                 <div><pre><code class="language-vue">&lt;template&gt;
@@ -205,12 +139,12 @@ const closePopup = () => {
 
 &lt;script setup&gt;
 import { ref } from 'vue';
-// ...
+// ... 其他导入和 ref 定义 ...
 
-// 控制刷新动画的状态
+// 刷新状态
 const refreshing = ref(false);
 
-const initData = async () => { /* ... */ };
+// ... 其他函数 ...
 
 // 下拉刷新事件处理
 const onRefresh = async () => {
@@ -218,7 +152,7 @@ const onRefresh = async () => {
   refreshing.value = true;
   
   // 2. 重新获取所有数据
-  await initData();
+  await initData(); // 假设 initData() 是一个获取所有页面数据的函数
   
   // 3. 数据获取完毕，隐藏刷新动画
   refreshing.value = false;
@@ -228,12 +162,18 @@ const onRefresh = async () => {
             </details>
             <hr>
 
-            <h3><img src="assets/code-icon.svg" alt="Code Icon" class="list-icon"> 步骤三：自定义SVG图标组件 (<code>SvgIcon.vue</code>) (可选)</h3>
-            <ul>
-                <li><strong>职责</strong>: 提供一个统一的、可复用的 SVG 图标组件，方便地控制图标的名称、大小和颜色。</li>
-                <li><strong>实现逻辑</strong>: 这个组件本质上是一个 <code>&lt;image&gt;</code> 标签。它接收 <code>name</code>, <code>size</code>, <code>color</code> 三个 <code>props</code>，然后根据 <code>name</code> 动态地拼接出 <code>src/static/SvgIcon/</code> 目录下的对应 <code>.svg</code> 文件的路径。</li>
-                <li><strong>知识点</strong>: <code>props</code> 的高级用法，动态 <code>src</code> 绑定。</li>
-            </ul>
+            <h3><span class="emoji-icon">💻</span> 步骤三：自定义SVG图标组件 (<code>SvgIcon.vue</code>) (可选)</h3>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>: 提供一个统一的、可复用的 SVG 图标组件，方便地控制图标的名称、大小和颜色，并且比 <code>uni-icons</code> 更灵活，可以加载我们自己的 SVG 文件。</p>
+            <p><strong>设计决策</strong>: 组件本质上是一个 <code>&lt;image&gt;</code> 标签。它接收 `name` prop，并根据这个 `name` 动态地拼接出 <code>/src/static/SvgIcon/</code> 目录下的对应 <code>.svg</code> 文件的路径。这样，我们只需要在 `static` 目录下放置 SVG 文件，就可以通过组件名来调用它们。</p>
+
+            <h5>编码流程</h5>
+            <ol>
+                <li>创建 <code>/src/components/SvgIcon/SvgIcon.vue</code> 文件。</li>
+                <li>在模板中，放置一个 <code>&lt;image&gt;</code> 标签。</li>
+                <li>将其 `src` 属性动态绑定为一个基于 `name` prop 的路径，例如 `` :src="`/src/static/SvgIcon/${name}.svg`" ``。</li>
+                <li>添加 `size` 和 `color` props 以便从外部控制样式。</li>
+            </ol>
             <details>
                 <summary>点击展开/折叠 SvgIcon.vue 源代码</summary>
                 <div><pre><code class="language-vue">&lt;template&gt;
@@ -248,60 +188,49 @@ const onRefresh = async () => {
 &lt;script setup&gt;
 import { defineProps } from 'vue'
 
-defineProps({
-  name: { type: String, required: true },
-  size: { type: [Number, String], default: 24 },
-  color: { type: String, default: '' }
+// 定义组件属性，支持图标名、大小、颜色
+const props = defineProps({
+  name: { // 图标名（对应SVG文件名：sunny、wind、rain等）
+    type: String,
+    required: true
+  },
+  size: { // 图标尺寸，默认24px
+    type: [Number, String],
+    default: 24
+  },
+  color: { // 单色图标颜色（需SVG的fill设为currentColor）
+    type: String,
+    default: ''
+  }
 })
 &lt;/script&gt;
+
+&lt;style scoped&gt;
+.weather-icon {
+  height: auto;
+  vertical-align: middle;
+}
+&lt;/style&gt;
 </code></pre></div>
             </details>
             <hr>
 
-            <h3><img src="assets/deploy-icon.svg" alt="Deploy Icon" class="list-icon"> 步骤四：项目打包与发布</h3>
-            <p>这是将我们的劳动成果交付给用户的最后一步。</p>
+            <h3><span class="emoji-icon">🚀</span> 步骤四：项目打包与发布</h3>
+            <h5>设计流程</h5>
+            <p><strong>目标</strong>：将我们的源代码转换成微信小程序平台可识别、可运行的代码包，并将其上传发布。</p>
+            <p><strong>设计决策</strong>：遵循 `uni-app` 的官方流程。首先配置 `manifest.json` 文件，这是 `uni-app` 项目的“身份证”，里面包含了小程序的 AppID 等关键信息。然后利用 `npm` 脚本执行 `uni-app` 提供的编译命令，将项目打包成 `mp-weixin` 平台的代码。最后一步是使用微信开发者工具这个“官方上传渠道”，来导入和上传我们的代码包。</p>
+            
+            <h5>编码流程</h5>
             <ol>
-                <li><strong>配置 <code>manifest.json</code></strong>:
-                    <ul>
-                        <li>打开项目根目录的 <code>manifest.json</code> 文件。</li>
-                        <li>在左侧菜单中选择 “微信小程序配置”。</li>
-                        <li>将从微信公众平台申请到的 <strong>微信小程序AppID</strong> 填入对应的输入框中。这是小程序身份的唯一标识，<strong>必须填写</strong>。</li>
-                        <li>（可选）在此处还可以配置小程序名称、图标等。</li>
-                    </ul>
-                </li>
-                <li><strong>执行打包命令</strong>:
-                    <ul>
-                        <li>打开 <code>package.json</code> 文件，可以看到 <code>scripts</code> 中定义了各种平台的打包命令。</li>
-                        <li>我们需要的是 <code>build:mp-weixin</code>。</li>
-                        <li>打开终端（HBuilderX内置终端或系统终端），在项目根目录下执行：</li>
-                    </ul>
-<pre><code class="language-shell">npm run build:mp-weixin
-</code></pre>
-                    <ul>
-                        <li>等待命令执行完毕。成功后，会在项目根目录生成一个 <code>dist</code> 文件夹，其中 <code>dist/build/mp-weixin</code> 就是我们打包好的小程序代码。</li>
-                    </ul>
-                </li>
-                <li><strong>在微信开发者工具中发布</strong>:
-                    <ul>
-                        <li>打开你的 <strong>微信开发者工具</strong>。</li>
-                        <li>点击 “导入”，项目目录选择上一步生成的 <code>dist/build/mp-weixin</code> 文件夹。</li>
-                        <li>AppID 会自动填入，确认无误后点击导入。</li>
-                        <li>在开发者工具中，可以进行最后的预览和调试。</li>
-                        <li>确认无误后，点击右上角的 <strong>“上传”</strong> 按钮，填写版本号和项目备注。</li>
-                        <li>上传成功后，登录 <a href="https://mp.weixin.qq.com/" target="_blank">微信公众平台</a>，在 “版本管理” 中可以看到你刚上传的版本。你可以将其设为“体验版”供内部测试，或直接“提交审核”。审核通过后，即可发布上线。</li>
-                    </ul>
-                </li>
+                <li><strong>配置 <code>manifest.json</code></strong>: 打开项目根目录的 <code>manifest.json</code> 文件，在“微信小程序配置”中，填入从微信公众平台申请到的 <strong>AppID</strong>。</li>
+                <li><strong>执行打包命令</strong>: 在项目根目录下打开终端，执行 `npm run build:mp-weixin`。</li>
+                <li><strong>导入微信开发者工具</strong>: 等待打包成功后，会在根目录生成 `dist/build/mp-weixin` 文件夹。打开微信开发者工具，点击“导入”，项目目录选择这个 `mp-weixin` 文件夹。</li>
+                <li><strong>上传版本</strong>: 在微信开发者工具中进行最后的预览和调试，确认无误后，点击右上角的“上传”按钮，填写版本信息即可上传。</li>
             </ol>
-
+            <p>上传成功后，即可登录 <a href="https://mp.weixin.qq.com/" target="_blank">微信公众平台</a>，在 “版本管理” 中看到你刚上传的版本，后续可提交审核或设为体验版。</p>
+            
             <h2>4. 课程总结与拓展任务</h2>
-            <p>本次课程我们从零开始，完整地经历了一个真实项目的全部生命周期。我们不仅学习了 <code>uni-app</code> 和 <code>Vue3</code> 的具体技术，更重要的是，我们建立了一套<strong>结构化、组件化、服务化</strong>的工程思想。这套思想可以被应用到未来的任何项目中。</p>
-            <p><strong>拓展任务</strong>:</p>
-            <ul>
-                <li><strong>任务</strong>: 目前应用在首次加载数据时，页面会短暂地显示默认值或空白。请实现一个“骨架屏（Skeleton Screen）”加载效果来优化这个过程。在 <code>index.vue</code> 中增加一个 <code>isLoading</code> 状态，在 <code>initData</code> 开始时设为 <code>true</code>，结束后设为 <code>false</code>。当 <code>isLoading</code> 为 <code>true</code> 时，用一些灰色的占位块来模拟 <code>CurrentEnvironment</code> 等组件的轮廓，为用户提供一个更平滑的加载预期。</li>
-                <li><strong>目的</strong>: 学习和实践“骨架屏”这一高级UX优化技巧，让应用感觉上“更快”。</li>
-            </ul>
-            <hr>
-            <p><strong>教师提示</strong>: 最后一阶段，重点在于培养学生的“产品完结”意识。一个项目不仅要功能跑通，还要好用、好看、稳定。让学生理解，代码的终点是服务于最终用户。发布流程是理论知识，能让学生对项目开发的“最后一公里”有一个完整的认知。</p>
+            <p><strong>拓展任务</strong>: 实现一个“骨架屏（Skeleton Screen）”加载效果。在 `index.vue` 中增加一个 `isLoading` 状态，在 `initData` 开始时设为 `true`，结束后设为 `false`。当 `isLoading` 为 `true` 时，用一些灰色的占位块来模拟 `CurrentEnvironment` 等组件的轮廓，为用户提供一个更平滑的加载预期。</p>
 
             <div class="stage-nav">
                 <a href="stage-3.html">&larr; 返回阶段三</a>
@@ -312,11 +241,6 @@ defineProps({
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
-        document.querySelectorAll('pre code').forEach((block) => {
-            let content = block.innerHTML;
-            content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            block.innerHTML = content;
-        });
     </script>
 </body>
 </html>
