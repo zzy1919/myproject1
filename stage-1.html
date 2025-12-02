@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段一：项目基础与组件化</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <a href="index.html">课程总览</a>
+                <a href="stage-1.html" class="active">阶段一：组件化</a>
+                <a href="stage-2.html">阶段二：核心服务</a>
+                <a href="stage-3.html">阶段三：城市管理</a>
+                <a href="stage-4.html">阶段四：优化发布</a>
+            </nav>
+        </header>
+        <main>
+            <h1>阶段一：项目基础与组件化</h1>
+
+            <h2>1. 教学目标</h2>
+            <ul>
+                <li><strong>项目创建</strong>：掌握使用 HBuilderX 创建基于 Vite + Vue3 的 <code>uni-app</code> 项目。</li>
+                <li><strong>结构认知</strong>：理解 <code>uni-app</code> 的核心目录结构及 <code>pages.json</code> 的路由配置功能。</li>
+                <li><strong>组件化思维</strong>：学习将一个复杂的页面（首页）自上而下地分解为多个高内聚、低耦合的独立组件。</li>
+                <li><strong>静态实现</strong>：能够利用 <code>props</code> 传参机制，将静态数据渲染到各个组件中，最终拼装出一个完整的、可视化的静态首页。</li>
+            </ul>
+
+            <h2>2. 阶段流程图 (Mermaid)</h2>
+            <p>此图展示了本阶段从项目创建到最终静态页面完成的完整工作流。</p>
+            <div class="mermaid">
+            graph TD
+                A[创建 uni-app 项目] --> B{分析首页UI};
+                B --> C[规划组件拆分<br>CurrentEnvironment<br>HourlyForecast<br>DailyForecast<br>LifeIndex];
+                C --> D[在 `src/components` 目录下<br>创建对应的 .vue 文件];
+                
+                subgraph "逐一实现静态组件"
+                    D1[编写 CurrentEnvironment.vue]
+                    D2[编写 HourlyForecast.vue]
+                    D3[编写 DailyForecast.vue]
+                    D4[编写 LifeIndex.vue]
+                end
+                
+                D --> D1 & D2 & D3 & D4;
+                
+                subgraph "组装首页"
+                   E[在 `pages/index/index.vue` 中<br>导入所有组件] --> F[定义临时的静态数据]
+                   F --> G[在模板中使用组件<br>并通过 Props 传递数据]
+                end
+                
+                D1 & D2 & D3 & D4 --> E;
+            
+                G --> H[完成首页静态布局]
+            </div>
+
+            <h2>3. 核心步骤详解</h2>
+            <h3>步骤一：项目初始化与目录认知</h3>
+            <ol>
+                <li><strong>创建项目</strong>: 在 HBuilderX 中，通过 <code>文件 -> 新建 -> 项目</code> 创建一个新的 <code>uni-app</code> 项目。
+                    <ul>
+                        <li><strong>技术选型</strong>: 请务必选择 <code>Vite</code> 和 <code>Vue3</code> 版本，这是目前主流的组合。</li>
+                    </ul>
+                </li>
+                <li><strong>目录概览</strong>: 创建后，花几分钟时间向学生介绍核心目录：
+                    <ul>
+                        <li><code>src</code>: 我们所有代码的家。</li>
+                        <li><code>pages</code>: 存放所有页面，每个页面一个文件夹。</li>
+                        <li><code>components</code>: 存放可复用的UI组件。</li>
+                        <li><code>static</code>: 存放图片、字体等静态资源。</li>
+                        <li><code>utils</code>: 存放工具函数、API请求等。</li>
+                        <li><code>pages.json</code>: 项目的“导航地图”，配置页面路径、窗口样式、<code>tabBar</code> 等。</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h3>步骤二：首页组件化拆分与创建</h3>
+            <div class="flow-illustration">
+                <img src="assets/component-page.svg" alt="Big Page" class="icon" style="width: 100px; height: 100px;">
+                <img src="assets/arrow-right.svg" alt="Decomposition Arrow" class="arrow">
+                <img src="assets/component-icon.svg" alt="Component 1" class="icon">
+                <img src="assets/component-icon.svg" alt="Component 2" class="icon">
+                <img src="assets/component-icon.svg" alt="Component 3" class="icon">
+            </div>
+            <p>在动手编码前，先进行“设计”。引导学生打开任何一个天气App，会发现其首页都是由多个信息块组成的。我们将我们的首页也拆分成类似的组件：</p>
+            <ul>
+                <li><strong><code>CurrentEnvironment.vue</code></strong>: 显示当前的核心天气信息和空气质量。</li>
+                <li><strong><code>HourlyForecast.vue</code></strong>: 横向滚动的24小时天气预报。</li>
+                <li><strong><code>DailyForecast.vue</code></strong>: 纵向列表的7天天气预报。</li>
+                <li><strong><code>LifeIndex.vue</code></strong>: 网格布局的生活指数。</li>
+            </ul>
+            <p>接下来，在 <code>src/components/</code> 目录下，创建以上四个 <code>.vue</code> 文件，并填入从我们项目中提取的源代码。</p>
+            <hr>
+            
+            <h4><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 1. 核心环境组件: <code>CurrentEnvironment.vue</code></h4>
+            <ul>
+                <li><strong>功能</strong>: 显示温度、天气、风力、湿度以及详细的空气质量指数。</li>
+                <li><strong>知识点</strong>: <code>props</code> 定义、<code>uni-card</code> 和 <code>uni-icons</code> 组件的使用、Flexbox布局。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 CurrentEnvironment.vue 源代码</summary>
+                <div>
+<pre><code>&lt;template&gt;
+  &lt;view class="current-environment"&gt;
+    &lt;!-- 实时天气信息 --&gt;
+    &lt;uni-card class="current-weather" :shadow="'none'"&gt;
+      &lt;view class="weather-info"&gt;
+        &lt;view class="left-section"&gt;
+          &lt;uni-icons :type="weatherData.icon" size="120" color="#FFD700"&gt;&lt;/uni-icons&gt;
+          &lt;text class="weather-desc"&gt;{{ weatherData.weather }}&lt;/text&gt;
+        &lt;/view&gt;
+        &lt;view class="right-section"&gt;
+          &lt;text class="temperature"&gt;{{ weatherData.temp }}°&lt;/text&gt;
+          &lt;view class="weather-detail"&gt;
+            &lt;view class="detail-item"&gt;
+              &lt;uni-icons type="water" size="20" color="#4A90E2"&gt;&lt;/uni-icons&gt;
+              &lt;text class="detail-text"&gt;{{ weatherData.humidity }}&lt;/text&gt;
+            &lt;/view&gt;
+            &lt;view class="detail-item"&gt;
+              &lt;uni-icons type="wind" size="20" color="#90A4AE"&gt;&lt;/uni-icons&gt;
+              &lt;text class="detail-text"&gt;{{ weatherData.wind }}&lt;/text&gt;
+            &lt;/view&gt;
+            &lt;view class="detail-item"&gt;
+              &lt;uni-icons type="location" size="20" color="#FF5722"&gt;&lt;/uni-icons&gt;
+              &lt;text class="detail-text"&gt;{{ weatherData.visibility }}&lt;/text&gt;
+            &lt;/view&gt;
+          &lt;/view&gt;
+        &lt;/view&gt;
+      &lt;/view&gt;
+    &lt;/uni-card&gt;
+    
+    &lt;!-- 空气质量 --&gt;
+    &lt;uni-card class="air-quality" :shadow="'none'"&gt;
+      &lt;text class="section-title"&gt;空气质量&lt;/text&gt;
+      &lt;view class="air-info"&gt;
+        &lt;view class="air-main"&gt;
+          &lt;text class="aqi-value"&gt;{{ airData.aqi }}&lt;/text&gt;
+          &lt;text class="aqi-level"&gt;{{ airData.level }}&lt;/text&gt;
+        &lt;/view&gt;
+        &lt;uni-progress :percent="airData.aqi" :show-info="false" :activeColor="airData.color" stroke-width="20"&gt;&lt;/uni-progress&gt;
+        &lt;view class="air-detail"&gt;
+          &lt;view class="air-item"&gt;
+            &lt;text class="air-label"&gt;PM2.5&lt;/text&gt;
+            &lt;text class="air-data"&gt;{{ airData.pm25 }}&lt;/text&gt;
+          &lt;/view&gt;
+          &lt;view class="air-item"&gt;
+            &lt;text class="air-label"&gt;PM10&lt;/text&gt;
+            &lt;text class="air-data"&gt;{{ airData.pm10 }}&lt;/text&gt;
+          &lt;/view&gt;
+          &lt;view class="air-item"&gt;
+            &lt;text class="air-label"&gt;NO2&lt;/text&gt;
+            &lt;text class="air-data"&gt;{{ airData.no2 }}&lt;/text&gt;
+          &lt;/view&gt;
+          &lt;view class="air-item"&gt;
+            &lt;text class="air-label"&gt;O3&lt;/text&gt;
+            &lt;text class="air-data"&gt;{{ airData.o3 }}&lt;/text&gt;
+          &lt;/view&gt;
+        &lt;/view&gt;
+      &lt;/view&gt;
+    &lt;/uni-card&gt;
+  &lt;/view&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { defineProps } from 'vue';
+
+// 定义组件的props
+defineProps({
+  // 实时天气数据
+  weatherData: {
+    type: Object,
+    default: () => ({
+      temp: '25',
+      weather: '晴',
+      humidity: '45%',
+      wind: '东北风 3级',
+      visibility: '10 km',
+      icon: 'sunny'
+    })
+  },
+  // 空气质量数据
+  airData: {
+    type: Object,
+    default: () => ({
+      aqi: 75,
+      level: '良',
+      pm25: 35,
+      pm10: 60,
+      no2: 25,
+      o3: 80,
+      color: '#FFFF00'
+    })
+  }
+});
+&lt;/script&gt;
+</code></pre>
+                </div>
+            </details>
+            
+            <hr>
+
+            <h4><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 2. 24小时预报组件: <code>HourlyForecast.vue</code></h4>
+            <ul>
+                <li><strong>功能</strong>: 以横向滚动的方式展示未来24小时的天气趋势。</li>
+                <li><strong>知识点</strong>: <code>scroll-view</code> 组件的 <code>scroll-x</code> 属性，<code>v-for</code> 循环渲染列表。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 HourlyForecast.vue 源代码</summary>
+                <div>
+<pre><code>&lt;template&gt;
+  &lt;uni-card class="hourly-forecast" :shadow="'none'"&gt;
+    &lt;text class="section-title"&gt;24小时预报&lt;/text&gt;
+    &lt;scroll-view scroll-x class="hourly-scroll"&gt;
+      &lt;view class="hourly-list"&gt;
+        &lt;view class="hourly-item" v-for="(item, index) in hourlyData" :key="index"&gt;
+          &lt;text class="hour-time"&gt;{{ item.time }}&lt;/text&gt;
+          &lt;uni-icons :type="item.icon" size="40" color="#90A4AE"&gt;&lt;/uni-icons&gt;
+          &lt;text class="hour-temp"&gt;{{ item.temp }}°&lt;/text&gt;
+        &lt;/view&gt;
+      &lt;/view&gt;
+    &lt;/scroll-view&gt;
+  &lt;/uni-card&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { defineProps } from 'vue';
+
+// 定义组件的props
+defineProps({
+  // 24小时预报数据
+  hourlyData: {
+    type: Array,
+    default: () => []
+  }
+});
+&lt;/script&gt;
+</code></pre>
+                </div>
+            </details>
+            <hr>
+            
+            <h4><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 3. 7天预报组件: <code>DailyForecast.vue</code></h4>
+            <ul>
+                <li><strong>功能</strong>: 用列表形式清晰展示未来一周的天气、日期和温度范围。</li>
+                <li><strong>知识点</strong>: <code>uni-list</code> 和 <code>uni-list-item</code> 组件，<code>v-for</code> 渲染，<code>computed</code> 属性处理默认数据。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 DailyForecast.vue 源代码</summary>
+                <div>
+<pre><code>&lt;template&gt;
+  &lt;uni-card class="daily-forecast"&gt;
+    &lt;text class="section-title"&gt;7天预报&lt;/text&gt;
+    &lt;uni-list&gt;
+      &lt;uni-list-item v-for="(item, index) in displayData" :key="index" :show-arrow="false"&gt;
+        &lt;template #header&gt;
+          &lt;view class="daily-left"&gt;
+            &lt;text class="daily-date"&gt;{{ item.date }}&lt;/text&gt;
+            &lt;text class="daily-day"&gt;{{ item.day }}&lt;/text&gt;
+          &lt;/view&gt;
+        &lt;/template&gt;
+        &lt;template #body&gt;
+          &lt;view class="daily-right"&gt;
+            &lt;uni-icons :type="item.icon" size="30" color="#90A4AE" class="daily-icon"&gt;&lt;/uni-icons&gt;
+            &lt;text class="daily-weather"&gt;{{ item.weather }}&lt;/text&gt;
+            &lt;view class="daily-temp"&gt;
+              &lt;text class="temp-max"&gt;{{ item.tempMax }}°&lt;/text&gt;
+              &lt;text class="temp-min"&gt;{{ item.tempMin }}°&lt;/text&gt;
+            &lt;/view&gt;
+          &lt;/view&gt;
+        &lt;/template&gt;
+      &lt;/uni-list-item&gt;
+    &lt;/uni-list&gt;
+  &lt;/uni-card&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { defineProps, computed } from 'vue';
+
+const props = defineProps({
+  dailyData: { type: Array, default: () => [] }
+});
+
+const defaultDailyData = [
+  // ... 默认数据
+];
+
+const displayData = computed(() => {
+  return props.dailyData.length > 0 ? props.dailyData : defaultDailyData;
+});
+&lt;/script&gt;
+</code></pre>
+                </div>
+            </details>
+            
+            <hr>
+
+            <h4><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 4. 生活指数组件: <code>LifeIndex.vue</code></h4>
+            <ul>
+                <li><strong>功能</strong>: 以网格布局展示多个生活指数，并能响应点击事件。</li>
+                <li><strong>知识点</strong>: <code>uni-grid</code> 组件，<code>defineEmits</code> 用于定义子组件向父组件的事件通信。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 LifeIndex.vue 源代码</summary>
+                <div>
+<pre><code>&lt;template&gt;
+  &lt;uni-card class="life-index" :shadow="'none'"&gt;
+    &lt;text class="section-title"&gt;生活指数&lt;/text&gt;
+    &lt;uni-grid :column="3" :show-border="false" :square="false"&gt;
+      &lt;uni-grid-item v-for="indexItem in indexData" :key="indexItem.type" @click="onShowDetail(indexItem)"&gt;
+        &lt;view class="index-item"&gt;
+          &lt;uni-icons :type="indexItem.icon" size="48" :color="indexItem.color"&gt;&lt;/uni-icons&gt;
+          &lt;text class="index-name"&gt;{{ indexItem.name }}&lt;/text&gt;
+          &lt;text class="index-value"&gt;{{ indexItem.value }}&lt;/text&gt;
+        &lt;/view&gt;
+      &lt;/uni-grid-item&gt;
+    &lt;/uni-grid&gt;
+  &lt;/uni-card&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { defineProps, defineEmits } from 'vue';
+
+defineProps({
+  indexData: { type: Array, default: () => [] }
+});
+
+const emit = defineEmits(['show-detail']);
+
+const onShowDetail = (indexItem) => {
+  emit('show-detail', indexItem);
+};
+&lt;/script&gt;
+</code></pre>
+                </div>
+            </details>
+            <hr>
+
+            <h3><img src="assets/code-icon.svg" alt="Code Icon" class="list-icon"> 步骤三：在首页 <code>index.vue</code> 中组装静态组件</h3>
+            <p>所有“零件”都已备好，现在我们回到“总装车间”——<code>pages/index/index.vue</code>。</p>
+            <ul>
+                <li><strong>功能</strong>: 作为页面的容器，负责导入、注册并使用所有子组件，同时为它们提供所需的数据。</li>
+                <li><strong>知识点</strong>: 组件的导入 (<code>import</code>)、注册 (SFC中自动) 和使用，通过 <code>:propName="data"</code> 的形式传递数据。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 pages/index/index.vue 组装后源代码</summary>
+                <div>
+<pre><code>&lt;template&gt;
+  &lt;view class="weather-container"&gt;
+    &lt;scroll-view 
+      scroll-y 
+      style="height: 100vh;"
+    &gt;
+      &lt;!-- 城市选择栏 (暂时静态) --&gt;
+      &lt;view class="city-bar"&gt;
+        &lt;text class="city-name"&gt;{{ currentCity }}&lt;/text&gt;
+        &lt;uni-icons type="arrow-down" size="20"&gt;&lt;/uni-icons&gt;
+      &lt;/view&gt;
+      
+      &lt;!-- 3. 在模板中使用所有组件，并通过 props 传入数据 --&gt;
+      &lt;CurrentEnvironment :weather-data="currentWeather" :air-data="airQuality"&gt;&lt;/CurrentEnvironment&gt;
+      &lt;HourlyForecast :hourly-data="hourlyForecast"&gt;&lt;/HourlyForecast&gt;
+      &lt;DailyForecast :daily-data="dailyForecast"&gt;&lt;/DailyForecast&gt;
+      &lt;LifeIndex :index-data="lifeIndices" @show-detail="showIndexDetail"&gt;&lt;/LifeIndex&gt;
+      
+      &lt;!-- 指数详情弹窗 (暂时隐藏) --&gt;
+      &lt;IndexDetailPopup :visible="detailVisible" :index-data="currentIndex" @close="closePopup"&gt;&lt;/IndexDetailPopup&gt;
+    &lt;/scroll-view&gt;
+  &lt;/view&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { ref } from 'vue';
+// 1. 导入所有需要的UI组件
+import CurrentEnvironment from '../../components/CurrentEnvironment.vue';
+import HourlyForecast from '../../components/HourlyForecast.vue';
+import DailyForecast from '../../components/DailyForecast.vue';
+import LifeIndex from '../../components/LifeIndex.vue';
+import IndexDetailPopup from '../../components/IndexDetailPopup.vue';
+
+// 2. 定义临时的、用于静态展示的本地数据
+// 在真实开发中，这些数据将从API获取
+const currentCity = ref('北京市');
+
+const currentWeather = ref({
+  temp: '25', weather: '晴', humidity: '45%', wind: '东北风 3级', visibility: '10 km', icon: 'sunny'
+});
+
+const hourlyForecast = ref([
+    { time: '14:00', icon: 'cloudy', temp: '25' }, { time: '15:00', icon: 'cloudy', temp: '24' },
+    // ...更多数据
+]);
+
+const dailyForecast = ref([]); // DailyForecast 组件内部有默认数据
+
+const airQuality = ref({
+  aqi: 75, level: '良', pm25: 35, pm10: 60, no2: 25, o3: 80, color: '#FFFF00'
+});
+
+const lifeIndices = ref([
+    { type: '1', name: '穿衣', value: '舒适', icon: 'person', color: '#4A90E2' },
+    { type: '2', name: '运动', value: '适宜', icon: 'flag', color: '#F5A623' },
+    // ...更多数据
+]);
+
+// 弹窗相关状态 (暂时用不到)
+const currentIndex = ref({});
+const detailVisible = ref(false);
+const showIndexDetail = (index) => { /* 暂时为空 */ };
+const closePopup = () => { /* 暂时为空 */ };
+&lt;/script&gt;
+</code></pre>
+                </div>
+            </details>
+
+            <h2>4. 课后任务 (进阶)</h2>
+            <ul>
+                <li><strong>任务</strong>: <code>CurrentEnvironment.vue</code> 组件目前同时负责“实时天气”和“空气质量”两块内容，显得有些臃肿。请创建一个新的组件 <code>AirQuality.vue</code>，将“空气质量”相关的模板、脚本和样式从 <code>CurrentEnvironment.vue</code> 中完全剥离出去。然后，在 <code>index.vue</code> 中像使用其他组件一样使用它。</li>
+                <li><strong>目的</strong>: 锻炼学生的代码“重构”能力，进一步理解单一职责原则（一个组件只做一件事），并巩固组件拆分与组装的全流程。</li>
+            </ul>
+            <hr>
+            <p><strong>教师提示</strong>: 此阶段是培养学生工程化思想的关键。务必强调：<strong>父组件通过 Props 向子组件传递数据，子组件通过 Events (<code>emit</code>) 向父组件报告事件</strong>。这是 Vue (乃至所有现代前端框架) 数据流的核心。鼓励学生在每个组件内部使用默认 <code>props</code> 数据，这样每个组件都可以独立预览和调试，极大地提升开发效率。</p>
+
+            <div class="stage-nav">
+                <a href="index.html">&larr; 返回总览</a>
+                <a href="stage-2.html">进入阶段二 &rarr;</a>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+        // Escape HTML in code blocks
+        document.querySelectorAll('pre code').forEach((block) => {
+            block.innerHTML = block.innerHTML.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        });
+    </script>
+</body>
+</html>

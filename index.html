@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信天气小程序 - 课程总览</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <a href="index.html" class="active">课程总览</a>
+                <a href="stage-1.html">阶段一：组件化</a>
+                <a href="stage-2.html">阶段二：核心服务</a>
+                <a href="stage-3.html">阶段三：城市管理</a>
+                <a href="stage-4.html">阶段四：优化发布</a>
+            </nav>
+        </header>
+        <main>
+            <h1>微信天气小程序项目实战 - 课程总览与项目规划</h1>
+
+            <h2>1. 课程介绍</h2>
+            <p>欢迎来到“微信天气小程序项目实战”课程！</p>
+            <p>本课程将教学任务分解为<strong>四大核心阶段</strong>，旨在通过一个完整的、真实的项目，带领同学们从零开始，一步步构建一个功能丰富的天气小程序。我们将使用 <code>uni-app</code> 框架，结合 <code>Vue 3</code> 的组合式API（Composition API）和 <code>uni-ui</code> 组件库来完成开发。</p>
+            <p>通过本课程，学生将专注于掌握项目架构设计、API数据对接、组件化开发和状态管理等核心工程能力，获得宝贵的实战经验。</p>
+            <h3>关于UI的说明</h3>
+            <p>当前项目的UI是功能性的，保证了核心功能的可用性。课程的重点是后端逻辑、数据流和项目结构。您可以以此为基础，在后续课程或项目中，带领学生进行更深入的UI/UX美化和迭代。</p>
+
+            <h2>2. 项目核心目标</h2>
+            <ul class="icon-list">
+                <li><img src="assets/component-icon.svg" alt="功能完善" class="list-icon"> <strong>功能完善</strong>：实现实时天气、多日预报、空气质量、生活指数、城市搜索与切换。</li>
+                <li><img src="assets/code-icon.svg" alt="架构清晰" class="list-icon"> <strong>架构清晰</strong>：建立视图层（Pages/Components）、服务层（Utils）和数据层（Datas/Store）分明的项目结构。</li>
+                <li><img src="assets/api-icon.svg" alt="数据真实" class="list-icon"> <strong>数据真实</strong>：对接真实的第三方天气数据API（以和风天气为例），替换项目中的模拟数据。</li>
+                <li><img src="assets/deploy-icon.svg" alt="体验流畅" class="list-icon"> <strong>体验流畅</strong>：应用加载迅速，交互响应及时，有良好的用户体验。</li>
+            </ul>
+
+            <h2>3. 技术栈</h2>
+            <ul class="icon-list">
+                <li><img src="assets/code-icon.svg" alt="开发框架" class="list-icon"> <strong>开发框架</strong>：<code>uni-app</code></li>
+                <li><img src="assets/code-icon.svg" alt="前端语言" class="list-icon"> <strong>前端语言</strong>：<code>JavaScript (ES6+)</code></li>
+                <li><img src="assets/component-icon.svg" alt="MVVM框架" class="list-icon"> <strong>MVVM框架</strong>：<code>Vue.js 3.x</code> (使用 <code>&lt;script setup&gt;</code> 语法)</li>
+                <li><img src="assets/component-icon.svg" alt="UI 组件库" class="list-icon"> <strong>UI 组件库</strong>：<code>uni-ui</code></li>
+                <li><img src="assets/api-icon.svg" alt="核心工具" class="list-icon"> <strong>核心工具</strong>：
+                    <ul class="sub-icon-list">
+                        <li><code>utils/api.js</code>: 封装 <code>uni.request</code> 用于API请求。</li>
+                        <li><code>utils/location.js</code>: 封装 <code>uni.getLocation</code> 用于地理位置获取。</li>
+                        <li><code>utils/store.js</code>: 简易的全局状态管理中心。</li>
+                    </ul>
+                </li>
+                <li><img src="assets/storage-icon.svg" alt="本地存储" class="list-icon"> <strong>本地存储</strong>：<code>uni.setStorageSync</code> / <code>uni.getStorageSync</code></li>
+            </ul>
+
+            <h2>4. 授课与编程流程总图</h2>
+            <p>此图详细展示了从项目搭建到最终发布的完整开发脉络和各阶段的技术点。</p>
+            <div class="mermaid">
+graph TD
+    subgraph "准备阶段"
+        A1["环境配置 HBuilderX"]
+        A2["注册和风天气API<br>获取API Key"]
+    end
+    
+    subgraph "阶段一: 项目基础与组件化"
+        B1["创建 uni-app 项目<br>Vite + Vue3"] --> B2["配置 `pages.json`<br>定义首页、城市页等路由"]
+        B2 --> B3["分析首页UI<br>规划组件层级"]
+        B3 --> B4["创建静态组件<br>`CurrentEnvironment.vue`<br>`HourlyForecast.vue`<br>`DailyForecast.vue`"]
+        B4 --> B5["编写组件的<br>Template 和 Style"]
+        B5 --> B6["在 `pages/index/index.vue`<br>引入并组装所有静态组件<br>完成首页静态布局"]
+    end
+
+    subgraph "阶段二: 核心服务与状态管理"
+        C1["创建 `utils` 目录<br>组织核心服务逻辑"] --> C2["编写 `location.js`<br>实现获取经纬度/IP定位"]
+        C2 --> C3["编写 `api.js`<br>封装 `uni.request`<br>统一处理天气API请求"]
+        C3 --> C4["编写 `store.js`<br>作为简易全局状态<br>存储天气、位置信息"]
+        C4 --> C5["在 `index.vue` 的 `onLoad` 中<br>调用 `location.js` 和 `api.js`"]
+        C5 --> C6["将获取到的API数据<br>存入 `store.js` 并<br>传递给子组件"]
+        C6 --> C7["子组件接收 `props`<br>动态渲染真实天气数据"]
+    end
+
+    subgraph "阶段三: 城市管理功能"
+        D1["创建 `pages/city/city.vue` 页面"] --> D2["使用 `uni-indexed-list`<br>构建城市选择列表UI"]
+        D2 --> D3["在 `api.js` 中<br>新增城市搜索API接口"]
+        D3 --> D4["在 `city.vue` 中实现<br>城市搜索与选择逻辑"]
+        D4 --> D5["用户选择城市后<br>将新城市信息存入全局 `store.js`<br>或通过 `uni.setStorageSync` 持久化"]
+        D5 --> D6["调用 `uni.navigateBack`<br>返回首页"]
+        D6 --> D7["在 `index.vue` 的 `onShow`<br>生命周期中检查城市变化<br>并重新获取天气数据"]
+    end
+
+    subgraph "阶段四: UI优化与项目发布"
+        E1["开发 `LifeIndex.vue` 组件<br>并结合 `uni-popup` 实现<br>点击查看详情"] --> E2["改造 `static/SvgIcon`<br>实现天气图标的动态显示"]
+        E2 --> E3["为 `index.vue` 添加<br>下拉刷新功能<br>onPullDownRefresh"]
+        E3 --> E4["代码审查与逻辑优化<br>例如合并重复函数"]
+        E4 --> E5["配置 `manifest.json`<br>如AppID、应用图标等"]
+        E5 --> E6["执行 `npm run build:mp-weixin`<br>进行项目打包"]
+        E6 --> E7["在微信开发者工具中<br>预览、调试并上传发布"]
+    end
+
+    %% 依赖关系
+    A1 & A2 --> B1;
+    B6 --> C1;
+    C7 --> D1;
+    D7 --> E1;
+            </div>
+
+            <h2>5. 课程大纲 (四大阶段)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>阶段</th>
+                        <th>核心内容</th>
+                        <th>主要产出物</th>
+                        <th>关键技术点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>一</strong></td>
+                        <td><strong>项目基础与组件化</strong></td>
+                        <td>项目骨架、首页静态UI、组件化概念建立</td>
+                        <td><code>uni-app</code>项目结构, <code>pages.json</code>, <code>Vue3</code>组件拆分与Props</td>
+                    </tr>
+                    <tr>
+                        <td><strong>二</strong></td>
+                        <td><strong>核心服务与状态管理</strong></td>
+                        <td>可用的定位和天气服务、中心化的数据流、动态更新的首页</td>
+                        <td><code>uni.request</code>, <code>uni.getLocation</code>, <code>Promise</code>与<code>async/await</code>, 简易状态管理</td>
+                    </tr>
+                    <tr>
+                        <td><strong>三</strong></td>
+                        <td><strong>城市管理功能实现</strong></td>
+                        <td>功能完整的城市搜索、切换、增删与持久化列表</td>
+                        <td><code>uni.navigateTo</code>, <code>uni-indexed-list</code>, <code>onShow</code>, <code>uni.setStorageSync</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>四</strong></td>
+                        <td><strong>UI优化与项目发布</strong></td>
+                        <td>更优的用户体验（加载/错误/刷新）、精美的动态背景、可发布的版本</td>
+                        <td><code>uni-popup</code>, <code>onPullDownRefresh</code>, <code>manifest.json</code>, 小程序发布流程</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <hr>
+            <p><strong>教师提示</strong>：您可以根据学生的接受程度，灵活调整每个阶段的授课时长。此结构更侧重于按功能模块和技术分层来推进，有助于学生建立更宏观的工程思想。</p>
+            
+            <div class="stage-nav">
+                <span></span> <!-- a placeholder for alignment -->
+                <a href="stage-1.html">进入阶段一 &rarr;</a>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>

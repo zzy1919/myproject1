@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阶段二：核心服务与状态管理</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav>
+                <a href="index.html">课程总览</a>
+                <a href="stage-1.html">阶段一：组件化</a>
+                <a href="stage-2.html" class="active">阶段二：核心服务</a>
+                <a href="stage-3.html">阶段三：城市管理</a>
+                <a href="stage-4.html">阶段四：优化发布</a>
+            </nav>
+        </header>
+        <main>
+            <h1>阶段二：核心服务与状态管理</h1>
+
+            <h2>1. 教学目标</h2>
+            <ul>
+                <li><strong>理解服务分层</strong>：掌握将不同职责的逻辑（如定位、API请求、状态管理、工具函数）拆分到独立 <code>utils</code> 文件中的重要性。</li>
+                <li><strong>掌握异步流程</strong>：能够熟练运用 <code>Promise</code> 和 <code>async/await</code> 封装 <code>uni-app</code> 的原生异步 API（如 <code>uni.request</code>, <code>uni.getLocation</code>），并处理复杂的异步依赖关系。</li>
+                <li><strong>学习简易状态管理</strong>：理解如何使用 Vue 3 的 <code>reactive</code> API 结合 <code>uni.setStorageSync</code> 构建一个轻量、持久化的全局状态管理器。</li>
+                <li><strong>建立真实数据流</strong>：将阶段一的静态首页与真实的服务层连接，建立起清晰的数据流动闭环：<strong>页面加载 → 定位 → 获取数据 → 更新状态 → 渲染UI</strong>。</li>
+                <li><strong>数据驱动开发</strong>：实现首页所有数据均由真实 API 动态驱动，替换掉所有硬编码的静态数据。</li>
+            </ul>
+
+            <h2>2. 真实数据流图 (Mermaid)</h2>
+            <p>此图精确展示了本项目中从应用启动到首页渲染完成的完整数据流。</p>
+            <div class="mermaid">
+            graph TD
+                subgraph "页面层 (index.vue)"
+                    A[onMounted<br>生命周期触发] --> B[调用 initData 函数];
+                    B --> C[调用 updateWeather 函数];
+                    I[Ref 响应式数据<br>currentWeather, airQuality, etc.] --> J[UI 组件重新渲染];
+                end
+
+                subgraph "服务层 (utils)"
+                    D[location.js<br>getCurrentCity]
+                    E[store.js<br>setCityInfo]
+                    F[api.js<br>getCurrentWeather, get24hForecast, etc.]
+                    G[weather.js<br>getAirQualityLevel]
+                end
+                
+                subgraph "外部 API"
+                    H[高德/和风天气]
+                end
+
+                B --调用--> D;
+                D --请求--> H;
+                D --获取城市信息--> B;
+                B --调用--> E;
+
+                C --并行调用--> F;
+                F --请求--> H;
+                F --获取天气数据--> C;
+                C --部分数据交由--> G;
+                G --处理后返回--> C;
+                C --更新--> I;
+            </div>
+
+            <h2>3. 核心步骤详解</h2>
+            <div class="flow-illustration">
+                <img src="assets/component-page.svg" alt="UI Component" class="icon" style="width: 100px; height: 100px;">
+                <img src="assets/arrow-right.svg" alt="Flow Arrow" class="arrow">
+                <img src="assets/api-icon.svg" alt="API Service" class="icon">
+                <img src="assets/arrow-right.svg" alt="Flow Arrow" class="arrow">
+                <img src="assets/storage-icon.svg" alt="Store/Storage" class="icon">
+                <img src="assets/arrow-right.svg" alt="Flow Arrow" class="arrow">
+                <img src="assets/code-icon.svg" alt="Logic/Utils" class="icon">
+            </div>
+            <p>在阶段一，我们的页面是“死”的。现在，我们要通过建立服务层，为它注入“灵魂”——真实的数据。</p>
+
+            <h3><img src="assets/api-icon.svg" alt="API Icon" class="list-icon"> 步骤一：封装定位服务 (<code>utils/location.js</code>)</h3>
+            <ul>
+                <li><strong>职责</strong>: 这是所有数据获取的起点。它负责确定用户当前的城市，并获取后续API调用所需的 <code>locationId</code> 和经纬度。</li>
+                <li><strong>实现逻辑</strong>:
+                    <ol>
+                        <li>通过 <code>uni.request</code> 调用高德地图的IP定位API，获取用户当前城市名和经纬度。</li>
+                        <li>如果失败，则默认返回“北京”的信息。</li>
+                        <li>拿到城市名后，调用和风天气的城市查询API，获取该城市对应的 <code>locationId</code>。</li>
+                        <li>将 <code>city</code>, <code>longitude</code>, <code>latitude</code>, <code>locationId</code> 组装成一个对象返回。</li>
+                    </ol>
+                </li>
+                <li><strong>知识点</strong>: 多个异步请求的串联处理，<code>Promise</code> 的构造与使用，错误处理与默认值。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 utils/location.js 源代码</summary>
+                <div><pre><code class="language-javascript">// 和风天气API Key
+const QWEATHER_KEY = '你的Key';
+const AMAP_URL = 'https://restapi.amap.com/v3/ip';
+const AMAP_KEY = '你的Key';
+
+/**
+ * 获取当前位置信息
+ * @returns {Promise} - 城市信息对象
+ */
+export const getCurrentCity = async () => {
+  // 1. 获取IP对应的城市名和经纬度
+  const ipData = await new Promise((resolve) => {
+    uni.request({
+      url: AMAP_URL,
+      data: { key: AMAP_KEY },
+      method: 'GET',
+      success: (res) => {
+        const [lng, lat] = res.data.rectangle.split(';')[0].split(',');
+        resolve({ 
+          city: res.data.city, 
+          longitude: parseFloat(lng).toFixed(2),
+          latitude: parseFloat(lat).toFixed(2)
+        });
+      },
+      fail: (err) => {
+        resolve({ city: '北京', longitude: 116.41, latitude: 39.92 });
+      }
+    });
+  });
+
+  const cityName = ipData.city || '北京';
+  
+  // 2. 根据城市名获取和风天气locationId
+  const cityIdData = await fetchCityId(cityName);
+  const locationId = cityIdData?.location?.[0]?.id || '101010100';
+  
+  // 3. 组装并返回最终的城市信息对象
+  return {
+    city: cityName,
+    longitude: ipData.longitude,
+    latitude: ipData.latitude,
+    locationId: locationId
+  };
+};
+
+/**
+ * 根据城市名获取和风天气locationId
+ * @param {string} cityName - 城市名称
+ * @returns {Promise}
+ */
+export const fetchCityId = (cityName) => {
+  // ... (代码同上)
+};
+</code></pre></div>
+            </details>
+            <hr>
+
+            <h3><img src="assets/storage-icon.svg" alt="Storage Icon" class="list-icon"> 步骤二：创建简易状态管理器 (<code>utils/store.js</code>)</h3>
+            <ul>
+                <li><strong>职责</strong>: 作为应用的“全局公告板”，存储跨页面共享的数据（如当前城市信息），并将其持久化到本地存储，确保应用下次打开时能恢复状态。</li>
+                <li><strong>实现逻辑</strong>:
+                    <ol>
+                        <li>使用 Vue 3 的 <code>reactive</code> 创建一个响应式的 <code>store</code> 对象。</li>
+                        <li>提供 <code>getCityInfo</code> 和 <code>setCityInfo</code> 等方法来读取和修改状态。</li>
+                        <li>在 <code>setCityInfo</code> 中，使用 <code>uni.setStorageSync</code> 将数据写入本地缓存。</li>
+                        <li>在文件首次加载时，执行 <code>initStore</code> 函数，尝试从 <code>uni.getStorageSync</code> 读取数据来初始化 <code>store</code> 对象。</li>
+                    </ol>
+                </li>
+                <li><strong>知识点</strong>: <code>reactive</code> 的使用，<code>uni.setStorageSync</code>/<code>getStorageSync</code> 的同步读写。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 utils/store.js 源代码</summary>
+                <div><pre><code class="language-javascript">import { reactive } from 'vue';
+
+// 创建全局响应式状态
+const store = reactive({
+  cityInfo: { /* ...默认值... */ },
+  myCities: [],
+  // ...
+});
+
+/**
+ * 设置当前城市信息
+ */
+export const setCityInfo = (cityInfo) => {
+  store.cityInfo = cityInfo;
+  // 使用 'CityInfo' 作为键，将对象整体存入
+  uni.setStorageSync('CityInfo', cityInfo);
+};
+
+/**
+ * 获取当前城市信息
+ */
+export const getCityInfo = () => {
+  return store.cityInfo;
+};
+
+// 初始化时从本地存储加载数据
+const initStore = () => {
+  const cityInfo = uni.getStorageSync('CityInfo');
+  if (cityInfo) {
+    store.cityInfo = cityInfo;
+  }
+  // ...
+};
+
+initStore();
+
+export default store;
+</code></pre></div>
+            </details>
+            <hr>
+            
+            <h3><img src="assets/api-icon.svg" alt="API Icon" class="list-icon"> 步骤三：封装统一API服务 (<code>utils/api.js</code>)</h3>
+            <ul>
+              <li><strong>职责</strong>: 项目中所有与天气API相关的请求都应通过此文件发出。它负责参数拼接、数据获取和最重要的数据清洗与格式化。</li>
+              <li><strong>实现逻辑</strong>:
+                  <ol>
+                      <li>从 <code>url.json</code> 和 <code>store</code> 中获取 API 的 URL、Key 和 <code>locationId</code>。</li>
+                      <li>为每个API端点（实时天气、7日预报等）创建一个独立的 <code>async</code> 函数。</li>
+                      <li>函数内部使用 <code>new Promise</code> 包装 <code>uni.request</code>。</li>
+                      <li>请求成功后，<strong>不直接返回原始数据</strong>，而是提取关键信息，转换成UI组件期望的、干净的格式（如 <code>temp: '25'</code>, <code>weather: '晴'</code>）。</li>
+                      <li>定义 <code>WEATHER_TEXT_MAP</code>，将API返回的文字（如“晴”）映射为我们需要的图标名（如“star”），实现逻辑解耦。</li>
+                  </ol>
+              </li>
+              <li><strong>知识点</strong>: 模块化思想，数据转换与适配（Adapter模式），<code>map</code> 函数的使用。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 utils/api.js 源代码</summary>
+                <div><pre><code class="language-javascript">import UrlConfig from '../datas/url.json';
+
+const WEATHER_TEXT_MAP = { /* ...映射关系... */ };
+
+/**
+ * 获取实时天气数据
+ * @param {string} city - 城市名称
+ * @returns {object} - 清洗后的实时天气数据
+ */
+export const getCurrentWeather = async (city) => {
+  const cityInfo = uni.getStorageSync('CityInfo') || {};
+  const locationId = cityInfo.locationId || '默认值';
+  
+  const result = await new Promise((resolve) => {
+    uni.request({
+      // ...请求参数...
+      success: (res) => resolve(res.data),
+      fail: () => resolve({ code: '500' })
+    });
+  });
+
+  if (result.code === '200') {
+    const nowData = result.now;
+    // 数据清洗与格式化
+    return {
+      code: '200',
+      data: {
+        city: city,
+        temp: nowData.temp,
+        weather: nowData.text,
+        humidity: `${nowData.humidity}%`,
+        wind: `${nowData.windDir} ${nowData.windScale}级`,
+        icon: WEATHER_TEXT_MAP[nowData.text] || 'star'
+      }
+    };
+  } else {
+    // 返回默认/错误数据
+    return { code: '500', data: { /* ... */ } };
+  }
+};
+
+// get24hForecast, get7dForecast 等函数与上面类似...
+</code></pre></div>
+            </details>
+            <hr>
+
+            <h3><img src="assets/code-icon.svg" alt="Code Icon" class="list-icon"> 步骤四：编写辅助工具 (<code>utils/weather.js</code>)</h3>
+            <ul>
+                <li><strong>职责</strong>: 存放与天气业务相关的、可复用的纯函数。这些函数不涉及IO或状态变更，只负责计算。</li>
+                <li><strong>实现逻辑</strong>: <code>getAirQualityLevel</code> 函数接收一个 <code>aqi</code> 值，根据预设的阈值返回对应的等级、颜色和描述。</li>
+                <li><strong>知识点</strong>: 纯函数，单一职责原则。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 utils/weather.js 源代码</summary>
+                <div><pre><code class="language-javascript">/**
+ * 根据AQI值获取空气质量等级
+ * @param {number} aqi - AQI值
+ * @returns {object} - { level, color, desc }
+ */
+export const getAirQualityLevel = (aqi) => {
+  if (aqi <= 50) {
+    return { level: '优', color: '#00E400', /* ... */ };
+  } else if (aqi <= 100) {
+    return { level: '良', color: '#FFFF00', /* ... */ };
+  } 
+  // ... 其他等级
+};
+</code></pre></div>
+            </details>
+            <hr>
+
+            <h3><img src="assets/component-icon.svg" alt="Component Icon" class="list-icon"> 步骤五：连接服务与视图 (<code>index.vue</code>)</h3>
+             <ul>
+                <li><strong>职责</strong>: 作为总指挥，在合适的时机（页面加载时）调用服务层，获取数据，并更新自己的响应式状态，从而驱动整个页面的刷新。</li>
+                <li><strong>实现逻辑</strong>:
+                    <ol>
+                        <li>在 <code>&lt;script setup&gt;</code> 中，从 <code>utils</code> 目录导入所有需要的服务函数。</li>
+                        <li>使用 <code>onMounted</code> 生命周期钩子，在页面挂载后调用 <code>initData</code>。</li>
+                        <li><code>initData</code> 函数首先调用 <code>location.js</code> 中的 <code>getCurrentCity</code> 获取位置，然后调用 <code>store.js</code> 中的 <code>setCityInfo</code> 将位置信息存入全局状态。</li>
+                        <li>随后调用 <code>updateWeather</code> 函数，此函数内<strong>并行</strong>调用 <code>api.js</code> 中的多个接口 (<code>getCurrentWeather</code>, <code>get24hForecast</code> 等)。</li>
+                        <li>拿到所有API返回的数据后，更新 <code>index.vue</code> 中定义的各个 <code>ref</code> 变量。</li>
+                    </ol>
+                </li>
+                <li><strong>知识点</strong>: <code>onMounted</code> 生命周期，<code>ref</code> 响应式变量，<code>async/await</code> 在组件中的应用。</li>
+            </ul>
+            <details>
+                <summary>点击展开/折叠 index.vue 脚本区源代码</summary>
+                <div><pre><code class="language-vue">&lt;script setup&gt;
+import { ref, onMounted, computed, watch } from 'vue';
+// 1. 导入所有服务
+import { getCurrentWeather, get24hForecast, get7dForecast, getAirQuality, getLifeIndex } from '../../utils/api';
+import { getCityInfo, setCityInfo } from '../../utils/store';
+import { getCurrentCity } from '../../utils/location';
+import { getAirQualityLevel } from '../../utils/weather';
+// ...导入组件...
+
+// 2. 定义 ref 变量，用于驱动UI
+const currentCity = computed(() => getCityInfo().city);
+const currentWeather = ref({ /* ...默认值... */ });
+const hourlyForecast = ref([]);
+const dailyForecast = ref([]);
+const airQuality = ref({ /* ...默认值... */ });
+// ...
+
+// 3. 核心数据更新函数
+const updateWeather = async () => {
+  // 调用 api.js 中的函数获取数据
+  const weatherRes = await getCurrentWeather(currentCity.value);
+  if (weatherRes.code === '200') {
+    // 更新 ref 变量
+    currentWeather.value = weatherRes.data;
+  }
+  
+  const airRes = await getAirQuality(currentCity.value);
+  if (airRes.code === '200') {
+    const airData = airRes.data;
+    const airLevel = getAirQualityLevel(airData.aqi); // 调用 weather.js
+    airQuality.value = { ...airData, color: airLevel.color };
+  }
+
+  // ...获取其他天气数据...
+};
+
+// 4. 初始化函数
+const initData = async () => {
+  // 调用 location.js
+  const currentLocation = await getCurrentCity();
+  // 调用 store.js
+  setCityInfo(currentLocation);
+  
+  await updateWeather();
+};
+
+// 5. 在页面加载时触发所有逻辑
+onMounted(() => {
+  initData();
+});
+&lt;/script&gt;
+</code></pre></div>
+            </details>
+
+            <h2>4. 课后任务 (进阶)</h2>
+            <ul>
+                <li><strong>任务</strong>: 在 <code>index.vue</code> 的 <code>updateWeather</code> 函数中，目前获取各类天气数据是<strong>串行</strong>的（一个接一个 <code>await</code>）。这会累加网络请求的时间。请使用 <code>Promise.all</code> 将这些独立的API请求改造为<strong>并行</strong>执行，以缩短总体的加载时间。</li>
+                <li><strong>目的</strong>: 掌握 <code>Promise.all</code> 的用法，理解并行与串行在异步编程中的性能差异，这是前端性能优化的一个重要技巧。</li>
+            </ul>
+            <hr>
+            <p><strong>教师提示</strong>: 本阶段是项目从“静态”到“动态”的质变，是整个课程的核心。务必强调服务分层的好处：<strong>高内聚、低耦合</strong>。<code>api.js</code> 只管数据获取与转换，<code>location.js</code> 只管定位，<code>store.js</code> 只管状态共享，各司其职，使得 <code>index.vue</code> 的逻辑变得清晰——只负责“调用”和“更新状态”，而不关心“如何实现”。这种架构思想比任何一个API的使用都更重要。</p>
+
+            <div class="stage-nav">
+                <a href="stage-1.html">&larr; 返回阶段一</a>
+                <a href="stage-3.html">进入阶段三 &rarr;</a>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+        document.querySelectorAll('pre code').forEach((block) => {
+            let content = block.innerHTML;
+            content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            block.innerHTML = content;
+        });
+    </script>
+</body>
+</html>
