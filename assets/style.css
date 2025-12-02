@@ -1,0 +1,264 @@
+/* General Body Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    margin: 0;
+    background-color: #f8f9fa; /* Light gray background */
+    color: #212529; /* Dark text */
+}
+
+/* Container */
+.container {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header and Navigation */
+header {
+    background: #ffffff; /* White header */
+    border-radius: 8px;
+    padding: 1rem 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #dee2e6; /* Light border */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+header h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    color: #212529;
+}
+
+nav {
+    display: flex;
+    gap: 1.5rem;
+}
+
+nav a {
+    color: #495057; /* Grayish text */
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.3s, border-bottom-color 0.3s;
+}
+
+nav a:hover, nav a.active {
+    color: #007bff; /* Blue for active/hover */
+    border-bottom-color: #007bff;
+}
+
+/* Main Content */
+main {
+    background: #ffffff; /* White main content area */
+    padding: 2.5rem;
+    border-radius: 8px;
+    border: 1px solid #dee2e6; /* Light border */
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #212529;
+    font-weight: 600;
+    border-bottom: 1px solid #e9ecef; /* Lighter border for headings */
+    padding-bottom: 0.5rem;
+    margin-top: 2.5rem;
+}
+
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.2rem; }
+
+
+/* Custom SVG Illustrations */
+.flow-illustration {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+.flow-illustration .icon {
+    width: 60px;
+    height: 60px;
+}
+.flow-illustration .arrow {
+    width: 40px;
+    height: 40px;
+}
+
+/* Code Blocks */
+pre {
+    background-color: #f1f3f5; /* Light gray for code block */
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1.2em;
+    overflow-x: auto;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+code {
+    font-family: inherit;
+    background: #e9ecef; /* Lighter gray for inline code */
+    color: #d6336c; /* Pinkish color for inline code */
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Mermaid Diagrams */
+.mermaid {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    text-align: center;
+    border: 1px solid #dee2e6;
+}
+.mermaid svg {
+    margin: 0 auto;
+    display: block;
+}
+
+/* Details/Summary for collapsible code */
+details {
+    margin: 1.5rem 0;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    transition: background-color 0.2s;
+}
+details:hover {
+    background-color: #f1f3f5;
+}
+
+summary {
+    cursor: pointer;
+    padding: 1rem;
+    font-weight: 500;
+    color: #007bff;
+    outline: none;
+}
+
+details[open] > summary {
+    border-bottom: 1px solid #dee2e6;
+}
+
+details > div {
+    padding: 0 1rem 1rem 1rem;
+    background-color: #fff;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #dee2e6;
+}
+
+th {
+    background-color: #e9ecef;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+/* Links */
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Lists */
+ul, ol {
+    padding-left: 20px;
+}
+
+li {
+    margin-bottom: 0.8rem;
+}
+
+/* Styles for lists with icons */
+.icon-list li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.icon-list .list-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    color: #007bff; /* Match primary color */
+    flex-shrink: 0; /* Prevent icon from shrinking */
+}
+
+/* For nested lists, remove extra padding if needed */
+.icon-list .sub-icon-list {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+    padding-left: 34px; /* Align with parent list text */
+}
+
+.icon-list .sub-icon-list li {
+    display: list-item; /* Reset display for nested li */
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+/* Stage navigation buttons */
+.stage-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.stage-nav a {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    background: #007bff;
+    color: #fff;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.stage-nav a:hover {
+    background: #0056b3;
+    text-decoration: none;
+    transform: translateY(-2px);
+}
