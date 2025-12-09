@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《uni-app 移动应用开发》期末大作业需求文档</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #007bff;
+            margin-top: 30px;
+            border-left: 5px solid #007bff;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #444;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #666;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        p, li {
+            font-size: 16px;
+        }
+        ul, ol {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, "Andale Mono", monospace;
+            color: #c7254e;
+        }
+        pre {
+            background-color: #f8f8f2;
+            color: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, "Andale Mono", monospace;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        .tag-core { background-color: #e74c3c; } /* 核心考点 */
+        .tag-opt { background-color: #2ecc71; }  /* 加分项 */
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            border-top: 1px solid #eaeaea;
+            padding-top: 20px;
+        }
+        details {
+            margin: 1.5rem 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            transition: background-color 0.2s;
+        }
+        details:hover {
+            background-color: #f1f3f5;
+        }
+
+        summary {
+            cursor: pointer;
+            padding: 1rem;
+            font-weight: 500;
+            color: #007bff;
+            outline: none;
+        }
+
+        details[open] > summary {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        details > div {
+            padding: 0 1rem 1rem 1rem;
+            background-color: #fff;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>《uni-app 移动应用开发》期末大作业需求文档</h1>
+
+    <h2>1. 项目背景与目标</h2>
+    
+    <h3>1.1 项目背景</h3>
+    <p><strong>电影推荐</strong> </p>
+
+    <h3>1.2 考核目标</h3>
+    <p>本项目旨在综合考核学生对本学期 uni-app 课程核心知识点的掌握情况，具体包括：</p>
+    <ul>
+        <li><strong>基础能力</strong>：熟练搭建 uni-app 项目，掌握 Vue 3 组合式 API (Script Setup) 的使用。</li>
+        <li><strong>组件化开发</strong>：能够封装通用组件（如电影卡片），并使用 Props 和 Events 进行通信。</li>
+        <li><strong>网络与数据</strong>：掌握网络请求 (<code>uni.request</code>) 的封装与拦截器 (<code>Interceptor</code>) 的使用，理解前后端分离开发模式。</li>
+        <li><strong>用户体验</strong>：能实现下拉刷新、上拉加载更多等移动端常见交互。</li>
+        <li><strong>UI 美化</strong>：熟练使用 <code>uni-ui</code> 组件库快速构建美观的界面。</li>
+    </ul>
+
+    <h2>2. 核心功能需求</h2>
+    <p>学生需完成以下两大核心页面及相关逻辑：</p>
+
+    <h3>2.1 首页 (Home Page)</h3>
+    <ol>
+        <li><strong>搜索栏</strong>：顶部需包含一个搜索框和公告栏（样式展示即可，推荐使用uni-search-bar、uni-notice-bar）。</li>
+        <li><strong>轮播图 (Banner)</strong>：
+            <ul>
+                <li>位于顶部，自动轮播展示热门电影海报。（推荐使用swiper）</li>
+                <li>数据来源：调用 Mock 接口 <code>/home/banner</code>。</li>
+            </ul>
+	<img style="width:80%;height:auto;" src="./static/pic/homep1.png" />
+        </li>
+        <li><strong>电影列表 (Movie List)</strong>：
+            <ul>
+                <li>以列表形式展示电影信息。</li>
+                <li><strong>展示内容</strong>：需包含电影海报、中文标题、副标题（年份/导演）、评分、标签（如“科幻/灾难”）。（推荐封装通用组件MovieCard.vue）(内部标签推荐uni-card、uni-rate)。</li>
+                <li><strong>数据来源</strong>：调用 Mock 接口 <code>/movie/list</code>。</li>
+            </ul>
+	    <img style="width:80%;height:auto;" src="./static/pic/homep2.png" />
+        </li>
+        <li><strong>交互要求</strong>：
+            <ul>
+                <li><strong>下拉刷新</strong>：下拉页面时，清空当前列表，重新请求第一页数据，并重置加载状态。</li>
+                <li><strong>上拉加载</strong>：滑动到底部时，自动加载下一页数据并追加到列表中。如果无更多数据，需显示“没有更多了”的提示。</li>
+                <li><strong>点击跳转</strong>：点击任意电影卡片，跳转至详情页，并将电影 ID 作为参数传递。</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h3>2.2 详情页 (Detail Page)</h3>
+    <ol>
+        <li><strong>电影信息头</strong>：
+            <ul>
+                <li>展示大幅背景图（可做模糊处理）、清晰海报、电影标题、评分、上映年份、国家/地区。</li>
+                <li>数据来源：调用 Mock 接口 <code>/movie/detail</code>，需根据首页传来的 ID 请求对应数据。</li>
+            </ul>
+        </li>
+        <li><strong>主创团队</strong>：
+            <ul>
+                <li>使用标签或列表形式展示导演和主演信息。（推荐用uni-card包括）</li>
+            </ul>
+        </li>
+        <li><strong>剧情简介</strong>：
+            <ul>
+                <li>使用 <code>rich-text</code> 组件解析并展示带有 HTML 格式的剧情简介（Mock 数据中包含 HTML 标签）。（推荐用uni-card包括，mock数据会返回的数据中，包含富文本信息summary，推荐 `rich-text` ）</li>
+            </ul>
+        </li>
+        <li><strong>收藏功能 <span class="tag tag-core">核心</span></strong>：
+            <ul>
+                <li>页面底部或导航栏需包含“收藏”按钮。（推荐uni-goods-nav，官网uni-ui组件教程有）</li>
+                <li><strong>逻辑要求</strong>：点击按钮切换收藏状态（已收藏/未收藏），并更新图标或文字。（只需实现这个功能就行，其他三个暂不用实现）</li>
+                <li><strong>数据持久化</strong>：必须使用 <code>uni.setStorageSync</code> 将收藏列表保存到本地，退出应用后再进入，收藏状态应保持不变。</li>
+            </ul>
+        </li>
+        <img style="width:80%;height:auto;" src="./static/pic/detailp1.png" />
+    </ol>
+
+    <h2>3. 技术栈要求</h2>
+    <ul>
+        <li><strong>开发工具</strong>：HBuilderX</li>
+        <li><strong>框架</strong>：uni-app + Vue 3 (使用 <code>&lt;script setup&gt;</code> 语法)</li>
+        <li><strong>UI 组件库</strong>：uni-ui (官方组件库)</li>
+        <li><strong>核心 API</strong>：
+            <ul>
+                <li><code>uni.request</code> (网络请求)</li>
+                <li><code>uni.addInterceptor</code> <span class="tag tag-core">核心考点</span> (用于拦截请求并返回 Mock 数据)</li>
+                <li><code>uni.navigateTo</code> (页面跳转与传参)</li>
+                <li><code>uni.showToast</code> / <code>uni.showLoading</code> (交互反馈)</li>
+                <li><code>uni.setStorageSync</code> / <code>uni.getStorageSync</code> (数据缓存)</li>
+            </ul>
+        </li>
+        <li><strong>生命周期</strong>：<code>onLoad</code>, <code>onPullDownRefresh</code>, <code>onReachBottom</code>, <code>onMounted</code></li>
+    </ul>
+
+    <h2>4. 项目资源包与接口文档</h2>
+
+    <h3>4.1 必装插件：uni-ui</h3>
+    <p>本项目要求使用 <code>uni-ui</code> 进行界面美化。</p>
+    <ul>
+        <li><strong>安装方式</strong>：打开 HBuilderX -> 顶部菜单“工具” -> “插件安装” -> “uni-ui (官方组件库)” -> 点击安装。</li>
+        <li><strong>使用方式</strong>：安装后无需 <code>import</code>，直接在 <code>&lt;template&gt;</code> 中使用即可，如 <code>&lt;uni-card&gt;</code>, <code>&lt;uni-tag&gt;</code> 等。</li>
+    </ul>
+
+    <h3>4.2 核心资源：Mock 数据脚本</h3>
+    <p>由于本项目不依赖真实的后端服务器，我们提供了一个 <code>mock.js</code> 文件来模拟后端接口。</p>
+    <ul>
+        <li><strong>资源获取</strong>：请复制老师提供的 <code>utils/mock.js</code> 代码并在项目中新建同名文件。</li>
+        <li><strong>使用方式</strong>：
+            <ol>
+                <li>在项目根目录下新建 <code>utils</code> 文件夹，放入 <code>mock.js</code>。</li>
+                <li>在 <strong>首页 (<code>pages/index/index.vue</code>)</strong> 中引入并启动拦截器：</li>
+            </ol>
+        </li>
+    </ul>
+    <div><pre><code>
+    import { onLoad } from 'vue';
+    import { initMock } from '@/utils/mock.js';
+    // 必须在页面挂载时启动拦截器，否则请求无法被拦截
+    onLoad(() => {
+        initMock();
+    });
+</code></pre></div>
+<details>
+                <summary>点击展开/折叠 utils/mock.js 源代码</summary>
+                <div><pre><code class="language-javascript">
+// utils/mock.js
+
+const HOST = 'https://api.movie-daily.com';
+const DELAY = 600; // 稍微加快一点模拟速度
+
+// 国产热门电影数据池
+const MOVIES = [
+	{ title: "流浪地球2", director: "郭帆", cast: "吴京 / 刘德华 / 李雪健", tags: ["科幻", "灾难"], year: 2023 },
+	{ title: "哪吒之魔童降世", director: "饺子", cast: "吕艳婷 / 囧森瑟夫", tags: ["动画", "奇幻"], year: 2019 },
+	{ title: "我不是药神", director: "文牧野", cast: "徐峥 / 王传君", tags: ["剧情", "喜剧"], year: 2018 },
+	{ title: "让子弹飞", director: "姜文", cast: "姜文 / 葛优 / 周润发", tags: ["剧情", "喜剧"], year: 2010 },
+	{ title: "战狼2", director: "吴京", cast: "吴京 / 弗兰克·格里罗", tags: ["动作", "战争"], year: 2017 },
+	{ title: "你好，李焕英", director: "贾玲", cast: "贾玲 / 张小斐", tags: ["喜剧", "亲情"], year: 2021 },
+	{ title: "长津湖", director: "陈凯歌 / 徐克 / 林超贤", cast: "吴京 / 易烊千玺", tags: ["战争", "历史"], year: 2021 },
+	{ title: "红海行动", director: "林超贤", cast: "张译 / 黄景瑜", tags: ["动作", "战争"], year: 2018 },
+	{ title: "夏洛特烦恼", director: "闫非 / 彭大魔", cast: "沈腾 / 马丽", tags: ["喜剧", "爱情"], year: 2015 },
+	{ title: "西游记之大圣归来", director: "田晓鹏", cast: "张磊 / 林子杰", tags: ["动画", "奇幻"], year: 2015 }
+];
+
+// 接口路由表
+const API_ROUTES = {
+	
+	// 1. 首页轮播图 (改为展示热门档期)
+	[`${HOST}/home/banner`]: () => {
+		return [
+			{ id: 101, image: 'https://picsum.photos/800/400?random=101', title: '春节档票房冠军回顾' },
+			{ id: 102, image: 'https://picsum.photos/800/400?random=102', title: '中国科幻电影的里程碑' },
+			{ id: 103, image: 'https://picsum.photos/800/400?random=103', title: '必看！豆瓣高分华语片' }
+		];
+	},
+
+	// 2. 电影列表接口
+	[`${HOST}/movie/list`]: (options) => {
+		// console.log(options)
+		const page = options.data?.page || 1;
+		const pageSize = 10;
+		if (page > 3) return []; // 模拟只有3页
+
+		return Array.from({ length: pageSize }).map((_, index) => {
+			const dataIndex = (page - 1) * pageSize + index;
+			const movie = MOVIES[dataIndex % MOVIES.length];
+			// 随机评分 8.0 - 9.8
+			const score = (8.0 + Math.random() * 1.8).toFixed(1); 
+			
+			return {
+				id: 2000 + dataIndex,
+				title: movie.title,
+				// 拼接副标题：年份 / 导演
+				subTitle: `${movie.year} / ${movie.director}`,
+				cover: `https://picsum.photos/300/400?random=${dataIndex + 200}`,
+				rating: Number(score), // 转为数字供 uni-rate 使用
+				tags: movie.tags,
+				reviews: Math.floor(Math.random() * 50000 + 1000)
+			};
+		});
+	},
+
+	// 3. 电影详情接口
+	[`${HOST}/movie/detail`]: (options) => {
+		const id = Number(options.data?.id || 0);
+		const index = (id - 2000) % MOVIES.length;
+		const movie = MOVIES[index >= 0 ? index : 0]; // 防止索引越界
+		
+		return {
+			id: id,
+			title: movie.title,
+			year: movie.year,
+			country: "中国大陆",
+			rating: 9.5, // 详情页给个高分
+			cover: `https://picsum.photos/300/400?random=${id}`,
+			director: movie.director,
+			casts: movie.cast,
+			// 富文本简介
+			summary: `
+				&lt;div style="color:#333; line-height:1.8; font-size:15px;"&gt;
+    &lt;p&gt;&lt;b&gt;【剧情简介】&lt;/b&gt;&lt;/p&gt;
+    &lt;p&gt;《${movie.title}》是一部备受观众喜爱的国产佳作。影片讲述了主角在经历了重重磨难后，最终寻找到了自我与真情的故事。&lt;/p&gt;
+    &lt;p&gt;该片上映期间口碑爆棚，成为了年度现象级电影。&lt;/p&gt;
+    &lt;br&gt;
+    &lt;p&gt;&lt;b&gt;【幕后花絮】&lt;/b&gt;&lt;/p&gt;
+    &lt;p&gt;导演${movie.director.split('/')[0]}在接受采访时表示，这部电影的拍摄过程非常艰辛...&lt;/p&gt;
+    &lt;img src="https://picsum.photos/600/350?random=${id+999}" style="width:100%; border-radius:8px; margin:10px 0;" /&gt;
+&lt;/div&gt;
+			`
+		};
+	}
+};
+
+export const initMock = () => {
+	console.log('Mock: 国产电影数据库已加载...');
+	uni.addInterceptor('request', {
+		invoke(args) {
+			const handler = API_ROUTES[args.url];
+			if (handler) {
+				setTimeout(() => {
+					const res = {
+						data: { code: 200, msg: 'success', data: handler(args) },
+						statusCode: 200
+					};
+					args.success && args.success(res);
+					args.complete && args.complete(res);
+				}, DELAY);
+				return false;
+			}
+			return args;
+		}
+	});
+};
+
+</code></pre></div>
+            </details>
+            <hr>
+    <h3>4.3 Mock 接口文档</h3>
+    <p><strong>基础域名 (Base URL)</strong>: <code>https://api.movie-daily.com</code></p>
+    <p>以下接口均通过 <code>uni.request</code> 调用，请求不会真的发往互联网，而是直接返回模拟数据。</p>
+
+    <h4>接口 1：获取首页轮播图</h4>
+    <ul>
+        <li><strong>地址</strong>: <code>/home/banner</code></li>
+        <li><strong>方式</strong>: <code>GET</code></li>
+        <li><strong>描述</strong>: 获取首页顶部的热门电影宣传图。</li>
+    </ul>
+
+    <h4>接口 2：获取电影列表 (分页)</h4>
+    <ul>
+        <li><strong>地址</strong>: <code>/movie/list</code></li>
+        <li><strong>方式</strong>: <code>GET</code></li>
+        <li><strong>参数</strong>:
+            <table>
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>page</td>
+                    <td>Number</td>
+                    <td>否</td>
+                    <td>页码，默认 1。Mock 数据预设了 3 页数据。</td>
+                </tr>
+            </table>
+        </li>
+    </ul>
+    <p><strong>返回示例</strong>:</p>
+<pre><code>{
+  "code": 200,
+  "data": [
+    {
+      "id": 2001,
+      "title": "流浪地球2",
+      "subTitle": "2023 / 郭帆",
+      "cover": "http://...",
+      "rating": 8.5,
+      "tags": ["科幻", "灾难"]
+    },
+    ...
+  ]
+}</code></pre>
+
+    <h4>接口 3：获取电影详情</h4>
+    <ul>
+        <li><strong>地址</strong>: <code>/movie/detail</code></li>
+        <li><strong>方式</strong>: <code>GET</code></li>
+        <li><strong>参数</strong>:
+            <table>
+                <tr>
+                    <th>参数名</th>
+                    <th>类型</th>
+                    <th>必填</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>id</td>
+                    <td>Number</td>
+                    <td>是</td>
+                    <td>电影 ID (从列表页获取)</td>
+                </tr>
+            </table>
+        </li>
+    </ul>
+
+    <h2>5. 评分标准</h2>
+    <table>
+        <tr>
+            <th width="15%">维度</th>
+            <th width="10%">分值</th>
+            <th>评分点说明</th>
+        </tr>
+        <tr>
+            <td><strong>基础功能</strong></td>
+            <td><strong>60分</strong></td>
+            <td>
+                1. 项目能正常运行，无报错 (20分)<br>
+                2. 首页轮播图和列表能展示 Mock 数据 (20分)<br>
+                3. 点击列表能跳转到详情页，且内容显示正确 (ID传参正确) (20分)
+            </td>
+        </tr>
+        <tr>
+            <td><strong>交互逻辑</strong></td>
+            <td><strong>20分</strong></td>
+            <td>
+                1. 下拉刷新逻辑正确 (数据重置) (10分)<br>
+                2. 上拉加载逻辑正确 (分页追加，无数据提示) (10分)
+            </td>
+        </tr>
+        <tr>
+            <td><strong>界面美观</strong></td>
+            <td><strong>10分</strong></td>
+            <td>
+                1. 使用了 <code>uni-ui</code> 组件 (如 uni-card, uni-tag 等) (5分)<br>
+                2. 页面布局整洁，图片无变形，文字排版清晰 (5分)
+            </td>
+        </tr>
+        <tr>
+            <td><strong>进阶加分</strong></td>
+            <td><strong>10分</strong></td>
+            <td>
+                1. <span class="tag tag-opt">收藏功能</span>：实现了收藏状态的本地持久化存储 (5分)<br>
+                2. <strong>代码规范</strong>：代码结构清晰，关键逻辑有注释，组件封装合理 (5分)
+            </td>
+        </tr>
+    </table>
+
+    <h2>6. 提交方式</h2>
+    <ul>
+        <li><strong>提交内容</strong>：
+            <ul>
+                <li>完整的项目源码文件夹（<span style="color:red;">请删除 unpackage 目录以减小体积</span>）。</li>
+                <li>一份简短的 <code>.txt</code> 说明文档，注明姓名、学号以及已完成的功能点。</li>
+            </ul>
+        </li>
+        <li><strong>提交截止时间</strong>：[请填写日期]</li>
+        <li><strong>提交渠道</strong>：[请填写提交方式，如学习通/邮箱]</li>
+    </ul>
+
+    <div class="footer">
+        <p>祝同学们开发顺利！遇到问题请先查阅 uni-app 官方文档或使用 Console.log 进行调试。</p>
+    </div>
+</div>
+
+</body>
+</html>
