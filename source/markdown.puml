@@ -1,0 +1,71 @@
+@startuml
+
+class MyClass {
+    + attribute1: int
+    - attribute2: string
+    # attribute3: float
+    + operation1(arg: int): void
+    - operation2(): string
+}
+
+class AnotherClass
+MyClass --> AnotherClass : association
+
+'获取发送的数据, 采用单例模式'
+class Data{
+    - data_ : string
+    + makeData(): virtual void
+    + getData(): string
+}
+
+class PorcessIdData{
+    - PorcessIdData()
+    + getInstance() : static PorcessIdData&
+    + makeData(): void
+}
+
+class DiskUsageData{
+    - DiskUsageData()
+    + getInstance() : static DiskUsageData&
+    + makeData(): void
+}
+
+Data <|-- ProcessIdData
+Data <|-- DiskUsageData
+
+'发送和接收数据'
+
+class Transfer{
+    - senddata_ : string
+    + createData(arg :string) : Data* 
+    + send(): virtual void
+
+    - accept_data_ : string
+    + accept(): virtual void
+    + getSendData(): string
+    + getAcceptData(): string
+}
+
+class PipeTransfer{
+    - pipefd[2]: int
+    + send(): virtual void
+    + accept(): virtual void
+}
+
+
+class MemoryTransfer{
+    + send(): virtual void
+    + accept(): virtual void
+}
+
+Transfer <|-- PipeTransfer
+Transfer <|-- MemoryTransfer
+
+class DataSendFactory{
+    + getTransfer() : Transfer*
+}
+
+DataSendFactory *-- Transfer
+Data *-- Transfer
+
+@enduml

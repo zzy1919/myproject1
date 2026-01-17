@@ -1,0 +1,5 @@
+/home/zzy/Desktop/zzy_stduy/my_project_test1/build/CMakeFiles/rebuild_cache.dir
+/home/zzy/Desktop/zzy_stduy/my_project_test1/build/CMakeFiles/edit_cache.dir
+/home/zzy/Desktop/zzy_stduy/my_project_test1/build/bin/CMakeFiles/rebuild_cache.dir
+/home/zzy/Desktop/zzy_stduy/my_project_test1/build/bin/CMakeFiles/hello.dir
+/home/zzy/Desktop/zzy_stduy/my_project_test1/build/bin/CMakeFiles/edit_cache.dir
